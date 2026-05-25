@@ -9,6 +9,7 @@ struct PathRay;
 
 struct Data {
 	std::vector<Tri> tris;
+	std::vector<Tri> emTris;
 	std::vector<PathRay> rays;
 };
  

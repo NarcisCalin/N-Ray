@@ -23,11 +23,12 @@ struct Tri {
 	float refraction;
 	float metalness;
 	uint32_t idx;
+	bool doubleSided;
 
 	Tri(glm::vec3 col, glm::vec3 specularCol, glm::vec3 emissionCol, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 aN, glm::vec3 bN, glm::vec3 cN,
-		float IOR, float roughness, float emissionIntensity, float refraction, float metalness)
+		float IOR, float roughness, float emissionIntensity, float refraction, float metalness, bool doubleSided)
 		: col(col), specularCol(specularCol), emissionCol(emissionCol), a(a), b(b), c(c), aN(aN), bN(bN), cN(cN), IOR(IOR),
-		roughness(roughness), emissionIntensity(emissionIntensity), refraction(refraction), metalness(metalness) {
+		roughness(roughness), emissionIntensity(emissionIntensity), refraction(refraction), metalness(metalness), doubleSided(doubleSided) {
 		calculateNormal();
 		calculateAABB();
 		calculateCenter();

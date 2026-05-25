@@ -95,7 +95,8 @@ struct AreaLight {
 			1.0f,
 			emissionStrength,
 			0.0f,
-			0.0f
+			0.0f,
+			false
 		},
 
 		b{
@@ -115,7 +116,8 @@ struct AreaLight {
 			1.0f,
 			emissionStrength,
 			0.0f,
-			0.0f
+			0.0f,
+			false
 		} {
 
 		addTrisToVector();
@@ -230,14 +232,14 @@ int main() {
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f };
-	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f };
-	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f };
+	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
+	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true};
+	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f };
+	ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, false };
 
 	std::cout << "Initializing Window..." << '\n';
 	screen.initScreen();
@@ -245,8 +247,8 @@ int main() {
 	std::cout << "Build BVH Tree..." << '\n';
 	createFlatBVH();
 
-	//sortByEmission();
-	//findEmissiveAmount();
+	/*sortByEmission();
+	findEmissiveAmount();*/
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
 		data.tris[i].idx = i;
@@ -337,12 +339,14 @@ int main() {
 
 		cam3D.fovy = raylibFov;
 
+		traceDebugRay();
+
 		/*for (size_t i = 0; i < data.tris.size(); i++) {
 
 			Color finalcol = { unsigned char(data.tris[i].col.x * 255),
 				unsigned char(data.tris[i].col.y * 255),
 				unsigned char(data.tris[i].col.z * 255),
-				255};
+				50};
 
 			DrawTriangle3D({ data.tris[i].a.x,data.tris[i].a.y,data.tris[i].a.z },
 				{ data.tris[i].b.x,data.tris[i].b.y,data.tris[i].b.z },
@@ -365,8 +369,6 @@ int main() {
 			DrawBoundingBox(bba, { 255, 0, 0, 100 });
 			DrawBoundingBox(bbb, { 0, 255, 0, 100 });
 		}*/
-
-		traceDebugRay();
 
 		EndMode3D();
 

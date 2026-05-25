@@ -10,8 +10,15 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	glm::vec3 h = glm::cross(ray.dir, edge2);
 	float det = glm::dot(edge1, h);
 
-	if (/*det > -EPSILON && */det < EPSILON) {
-		return false;
+	if (tri.doubleSided) {
+		if (det > -EPSILON && det < EPSILON) {
+			return false;
+		}
+	}
+	else {
+		if (det < EPSILON) {
+			return false;
+		}
 	}
 
 	float invDet = 1.0f / det;
@@ -155,22 +162,23 @@ bool PathTracer::specularLighting(PathRay& ray, glm::vec3& normal, std::vector<T
 }
 
 void PathTracer::refractionLighting(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris) {
-	float etai = airIOR;
-	float etat = tris[ray.triIdx].IOR;
+	float n1 = airIOR;
+	float n2 = tris[ray.triIdx].IOR;
 	float cosi = glm::dot(ray.dir, normal);
 
 	if (cosi > 0.0f) {
-		std::swap(etai, etat);
+		std::swap(n1, n2);
 		normal = -normal;
 		cosi = -cosi;
 		ray.isRefraction = false;
 	}
 	else {
 		cosi = -cosi;
+		ray.src = ray.hitPos - normal * 0.001f;
 		ray.isRefraction = true;
 	}
 
-	float eta = etai / etat;
+	float eta = n1 / n2;
 	float k = 1.0f - eta * eta * (1.0f - cosi * cosi);
 
 	if (k < 0.0f) {
@@ -247,12 +255,12 @@ void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& t
 	float dist = sqrt(dSq);
 	glm::vec3 dlDir = lVec / dist;
 
-	PathRay dlRay({ ray.hitPos - tris[ray.triIdx].normal * 0.001f, dlDir });
+	PathRay dlRay({ ray.hitPos + tris[ray.triIdx].normal * 0.001f, dlDir });
 
 	float closestT = FLT_MAX;
 	traverseFlatBVH(dlRay, closestT, tris);
 
-	if (dlRay.hit && closestT < dist - 0.001f) {
+	if (closestT < dist - 0.001f) {
 		return;
 	}
 
@@ -313,14 +321,7 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 		if (ray.triIdx != UINT32_MAX && ray.active) {
 
 			glm::vec3 interpolatedNormal = InterpolateNormal(ray, tris);
-			glm::vec3 newNormal = tris[ray.triIdx].normal;
-
-			if (ray.isRefraction) {
-				ray.src = ray.hitPos - newNormal * 0.001f;
-			}
-			else {
-				ray.src = ray.hitPos + newNormal * 0.001f;
-			}
+			ray.src = ray.hitPos + tris[ray.triIdx].normal * 0.001f;
 
 			float emissionVal = (tris[ray.triIdx].emissionCol.x + tris[ray.triIdx].emissionCol.y + tris[ray.triIdx].emissionCol.z) / 3.0f;
 			bool isEmissive = tris[ray.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
@@ -484,14 +485,8 @@ std::vector<DebugRay> PathTracer::rayLogicDebug(PathRay ray, std::vector<Tri>& t
 		if (ray.triIdx != UINT32_MAX && ray.active) {
 
 			glm::vec3 interpolatedNormal = InterpolateNormal(ray, tris);
-			glm::vec3 newNormal = tris[ray.triIdx].normal;
 
-			if (ray.isRefraction) {
-				ray.src = ray.hitPos - newNormal * 0.001f;
-			}
-			else {
-				ray.src = ray.hitPos + newNormal * 0.001f;
-			}
+			ray.src = ray.hitPos + tris[ray.triIdx].normal * 0.001f;
 
 			float emissionVal = (tris[ray.triIdx].emissionCol.x + tris[ray.triIdx].emissionCol.y + tris[ray.triIdx].emissionCol.z) / 3.0f;
 			bool isEmissive = tris[ray.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;

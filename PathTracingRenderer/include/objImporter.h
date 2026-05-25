@@ -16,6 +16,7 @@ struct ObjImporter {
 	float emissionIntensity;
 	float refraction;
 	float metalness;
+	bool doubleSided;
 
 	ObjImporter(
 		std::string fileName,
@@ -24,14 +25,16 @@ struct ObjImporter {
 		float roughness,
 		float emissionIntensity,
 		float refraction,
-		float metalness
+		float metalness,
+		bool doubleSided
 	) :
 		fileName(fileName),
 		IOR(IOR),
 		roughness(roughness),
 		emissionIntensity(emissionIntensity),
 		refraction(refraction),
-		metalness(metalness)
+		metalness(metalness),
+		doubleSided(doubleSided)
 	{
 		objImporter(data);
 	}
@@ -162,7 +165,8 @@ struct ObjImporter {
 						roughness,
 						emissionIntensity,
 						refraction,
-						metalness
+						metalness,
+						doubleSided
 						});
 				}
 			}

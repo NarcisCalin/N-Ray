@@ -69,6 +69,10 @@ ScaffoldingReadMe.txt
 # StyleCop
 StyleCopReport.xml
 
+# Custom files
+*.blend
+*.blend1
+
 # Files built by Visual Studio
 *_i.c
 *_p.c
@@ -76,6 +80,7 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.obj
+!models/*.obj
 *.iobj
 *.pch
 *.pdb

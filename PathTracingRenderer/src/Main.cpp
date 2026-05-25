@@ -230,14 +230,14 @@ int main() {
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	ObjImporter scene{ "scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f };
-	ObjImporter glass{ "sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f };
-	ObjImporter metal{ "sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f };
+	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f };
+	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f };
+	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f };
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter area{ "sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f };
+	ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f };
 
 	std::cout << "Initializing Window..." << '\n';
 	screen.initScreen();

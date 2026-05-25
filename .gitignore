@@ -80,6 +80,8 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.obj
+
+!models/
 !models/*.obj
 *.iobj
 *.pch

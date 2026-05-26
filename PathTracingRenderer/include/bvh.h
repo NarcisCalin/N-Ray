@@ -95,11 +95,11 @@ struct BVH {
 			return;
 		}
 
-		uint32_t childAIdx = globalBVH.size();
+		uint32_t childAIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
 		globalBVH[childAIdx] = BVH(startIndex, aIdx - 1, tris, globalBVH);
 
-		uint32_t childBIdx = globalBVH.size();
+		uint32_t childBIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
 		globalBVH[childBIdx] = BVH(aIdx, endIndex, tris, globalBVH);
 

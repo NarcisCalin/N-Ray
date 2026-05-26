@@ -235,14 +235,16 @@ int main() {
 	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
 	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true};
 	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
+	ObjImporter red{ "models/sceneRed.obj", data, 1.5f, 0.15f, 0.0f, 0.0f, 0.0f, true };
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, false };
+	//ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, false };
+	//ObjImporter emissive{ "models/sceneEmissive.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, true };
 
 	std::cout << "Initializing Window..." << '\n';
-	screen.initScreen();
+	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
 
 	std::cout << "Build BVH Tree..." << '\n';
 	createFlatBVH();
@@ -251,7 +253,7 @@ int main() {
 	findEmissiveAmount();*/
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
-		data.tris[i].idx = i;
+		data.tris[i].idx = uint32_t(i);
 	}
 
 	cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
@@ -263,6 +265,16 @@ int main() {
 	float totalMs = 0.0f;
 	int totalFrames = 0;
 
+	Image ptData = {
+		.data = data.frameBuffer.data(),
+		.width = screen.resX,
+		.height = screen.resY,
+		.mipmaps = 1,
+		.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+	};
+
+	Texture2D render = LoadTextureFromImage(ptData);
+
 	while (!WindowShouldClose()) {
 
 		BeginDrawing();
@@ -273,56 +285,9 @@ int main() {
 
 		params.dt = GetFrameTime();
 
-		/*for (auto& tri : tris) {
+		pt.render(data, myCam, screen, params, render);
 
-			glm::vec4 va(
-				tri.a.x,
-				tri.a.y,
-				tri.a.z,
-				1.0f
-			);
-
-			va = rotation * va;
-
-			tri.a.x = va.x;
-			tri.a.y = va.y;
-			tri.a.z = va.z;
-
-			glm::vec4 vb(
-				tri.b.x,
-				tri.b.y,
-				tri.b.z,
-				1.0f
-			);
-
-			vb = rotation * vb;
-
-			tri.b.x = vb.x;
-			tri.b.y = vb.y;
-			tri.b.z = vb.z;
-
-			glm::vec4 vc(
-				tri.c.x,
-				tri.c.y,
-				tri.c.z,
-				1.0f
-			);
-
-			vc = rotation * vc;
-
-			tri.c.x = vc.x;
-			tri.c.y = vc.y;
-			tri.c.z = vc.z;
-
-			tri.calculateNormal();
-			tri.calculateAABB();
-
-		}
-
-		bvh = createBVH();*/
-
-		pt.render(data.rays, data.tris, myCam, screen, params);
-		myCam.cameraLogic(params.dt);
+		myCam.cameraLogic(params);
 
 		BeginMode3D(cam3D);
 
@@ -425,7 +390,7 @@ int main() {
 
 		EndDrawing();
 
-		/*if (currentSample - 1 >= 1000) {
+		/*if (params.currentSample - 1 >= 1000) {
 			TakeScreenshot("OutPerformance_.png");
 			break;
 		}*/

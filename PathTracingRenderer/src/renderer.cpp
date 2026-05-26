@@ -47,34 +47,25 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 }
 
 bool PathTracer::rayAABB(const PathRay& ray, glm::vec3& boxMin, glm::vec3& boxMax) {
-	float tmin = (boxMin.x - ray.src.x) / ray.dir.x;
-	float tmax = (boxMax.x - ray.src.x) / ray.dir.x;
+	float tx1 = (boxMin.x - ray.src.x) * ray.invDir.x;
+	float tx2 = (boxMax.x - ray.src.x) * ray.invDir.x;
 
-	if (tmin > tmax) std::swap(tmin, tmax);
+	float tmin = std::min(tx1, tx2);
+	float tmax = std::max(tx1, tx2);
 
-	float tymin = (boxMin.y - ray.src.y) / ray.dir.y;
-	float tymax = (boxMax.y - ray.src.y) / ray.dir.y;
+	float ty1 = (boxMin.y - ray.src.y) * ray.invDir.y;
+	float ty2 = (boxMax.y - ray.src.y) * ray.invDir.y;
 
-	if (tymin > tymax) std::swap(tymin, tymax);
+	tmin = std::max(tmin, std::min(ty1, ty2));
+	tmax = std::min(tmax, std::max(ty1, ty2));
 
-	if ((tmin > tymax) || (tymin > tmax))
-		return false;
+	float tz1 = (boxMin.z - ray.src.z) * ray.invDir.z;
+	float tz2 = (boxMax.z - ray.src.z) * ray.invDir.z;
 
-	if (tymin > tmin) tmin = tymin;
-	if (tymax < tmax) tmax = tymax;
+	tmin = std::max(tmin, std::min(tz1, tz2));
+	tmax = std::min(tmax, std::max(tz1, tz2));
 
-	float tzmin = (boxMin.z - ray.src.z) / ray.dir.z;
-	float tzmax = (boxMax.z - ray.src.z) / ray.dir.z;
-
-	if (tzmin > tzmax) std::swap(tzmin, tzmax);
-
-	if ((tmin > tzmax) || (tzmin > tmax))
-		return false;
-
-	if (tzmin > tmin) tmin = tzmin;
-	if (tzmax < tmax) tmax = tzmax;
-
-	return tmax >= 0;
+	return tmax >= std::max(tmin, 0.0f);
 }
 
 void PathTracer::diffuseLighting(PathRay& ray, glm::vec3& normal, std::vector<Tri>& tris) {
@@ -285,6 +276,19 @@ void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& t
 	ray.col += ray.throughput * emission * G / (pdf * PI);
 }
 
+glm::vec3 sky(PathRay& ray) {
+	glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
+
+	glm::vec3 skyTop = { 0.263f, 0.553f, 0.769f };
+	glm::vec3 skyBase = { 0.89f, 0.824f, 0.698f };
+
+	float upAmount = glm::pow(glm::max(glm::dot(ray.dir, worldUp), 0.0f), 0.5f);
+
+	glm::vec3 skyCol = glm::mix(skyBase, skyTop, upAmount);
+
+	return skyCol;
+}
+
 void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) {
 	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
@@ -302,7 +306,7 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 			ray.active = false;
 
 			if (params.environmentLight) {
-				ray.col += ray.throughput * params.environmentIntensity;
+				ray.col += ray.throughput * params.environmentIntensity * sky(ray);
 			}
 
 			if (params.sunLight) {
@@ -345,6 +349,7 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 				ray.throughput *= tris[ray.triIdx].specularCol;
 			}
 		}
+		ray.invDir = 1.0f / ray.dir;
 	}
 }
 
@@ -371,6 +376,7 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen&
 
 			rays[index].src = myCam.camPos;
 			rays[index].dir = dir;
+			rays[index].invDir = 1.0f / rays[index].dir;
 
 			rays[index].active = true;
 			rays[index].col = glm::vec3(0.0f);
@@ -379,35 +385,22 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen&
 	}
 }
 
-void PathTracer::render(std::vector<PathRay>& rays, std::vector<Tri>& tris, PTCam& myCam, Screen& screen, Params& params) {
+void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render) {
 
-	if (IsKeyDown(KEY_W) ||
-		IsKeyDown(KEY_A) ||
-		IsKeyDown(KEY_S) ||
-		IsKeyDown(KEY_D) ||
-		IsKeyDown(KEY_LEFT_SHIFT) ||
-		IsKeyDown(KEY_LEFT_CONTROL)) {
-		shouldSample = false;
-	}
-	else {
-		shouldSample = true;
-	}
-
-	if (shouldSample) {
+	if (params.shouldSample) {
 		if (params.currentSample < params.maxSamples) {
 
-			rayGeneration(rays, myCam, screen, params);
+			rayGeneration(data.rays, myCam, screen, params);
 
 #pragma omp parallel for
-			for (int i = 0; i < rays.size(); i++) {
-				rayLogic(rays[i], tris, params);
+			for (int i = 0; i < data.rays.size(); i++) {
+				rayLogic(data.rays[i], data.tris, params);
 			}
 
-			for (size_t i = 0; i < screen.pixels.size(); i++) {
-				Pixel& p = screen.pixels[i];
-				PathRay& r = rays[i];
+			for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+				PathRay& r = data.rays[i];
 
-				p.accumColor += r.col;
+				data.accumBuffer[i] += r.col;
 			}
 
 			params.currentSample++;
@@ -417,26 +410,26 @@ void PathTracer::render(std::vector<PathRay>& rays, std::vector<Tri>& tris, PTCa
 
 		params.currentSample = 0;
 
-		for (size_t i = 0; i < screen.pixels.size(); i++) {
-			screen.pixels[i].accumColor = { 0.0f, 0.0f, 0.0f };
+		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+
+			data.accumBuffer[i] = { 0.0f, 0.0f, 0.0f };
 		}
 
-		rayGeneration(rays, myCam, screen, params);
+		rayGeneration(data.rays, myCam, screen, params);
 
 #pragma omp parallel for
-		for (int i = 0; i < rays.size(); i++) {
-			rayLogic(rays[i], tris, params);
+		for (int i = 0; i < data.rays.size(); i++) {
+			rayLogic(data.rays[i], data.tris, params);
 		}
 
-		for (size_t i = 0; i < screen.pixels.size(); i++) {
-			Pixel& p = screen.pixels[i];
-			PathRay& r = rays[i];
+		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+			PathRay& r = data.rays[i];
 
-			p.accumColor += r.col;
+			data.accumBuffer[i] += r.col;
 		}
 	}
 
-	drawScreen(screen, params);
+	drawScreen(screen, params, data, screen.resX, render);
 }
 
 std::vector<DebugRay> PathTracer::rayLogicDebug(PathRay ray, std::vector<Tri>& tris, Params& params) {

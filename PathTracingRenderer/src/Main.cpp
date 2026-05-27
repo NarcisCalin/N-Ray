@@ -8,9 +8,10 @@
 #include <memory>
 #include <random>
 #include <rlgl.h>
+#include <imgui.h>
+#include <rlImGui.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,12 +23,17 @@
 #include <renderer.h>
 #include <camera.h>
 #include <objImporter.h>
+#include <ui.h>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/rotate_vector.hpp>
 
 Params params;
 Data data;
 Screen screen{ float(params.screenSize.x), float(params.screenSize.y) };
 PathTracer pt;
 PTCam myCam;
+UI ui;
 
 std::vector<BVH> globalBVH;
 
@@ -182,7 +188,6 @@ void findEmissiveAmount() {
 
 Camera3D cam3D;
 
-PathRay mRay{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 Ray mouseRay = GetScreenToWorldRay({ 0.0f, 0.0f }, cam3D);
 
 std::vector<DebugRay> debugRays;
@@ -193,9 +198,12 @@ void traceDebugRay() {
 	if (IsMouseButtonPressed(0)) {
 		mouseRay = GetScreenToWorldRay(GetMousePosition(), cam3D);
 
+		PathRay mRay{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+
 		mRay.src = { mouseRay.position.x, mouseRay.position.y, mouseRay.position.z };
 		mRay.dir = { mouseRay.direction.x, mouseRay.direction.y, mouseRay.direction.z };
-		debugRays = pt.rayLogicDebug(mRay, data.tris, params);
+
+		debugRays = pt.rayLogic(mRay, data.tris, params, true);
 	}
 
 	for (size_t i = 0; i < debugRays.size(); i++) {
@@ -274,6 +282,11 @@ int main() {
 	};
 
 	Texture2D render = LoadTextureFromImage(ptData);
+
+	float angleA = 0.0f;
+	float angleB = 0.0f;
+
+	rlImGuiSetup(true);
 
 	while (!WindowShouldClose()) {
 
@@ -360,6 +373,30 @@ int main() {
 		DrawText(TextFormat("Total time (ms): %.2f ms", totalMs), 10, 160, 20, DARKGRAY);
 
 		DrawText(TextFormat("Total time (sec): %.2f sec", totalMs / 1000.0f), 10, 180, 20, DARKGRAY);
+
+		/*GuiSlider({ 10.0f, 200.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.x, 0.0f, 1.0f);
+		GuiSlider({ 10.0f, 220.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.y, 0.0f, 1.0f);
+		GuiSlider({ 10.0f, 240.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.z, 0.0f, 1.0f);
+		GuiSlider({ 10.0f, 260.0f, 200.0f, 20.0f }, "0.0", "360.0", &angleA, 0.0f, 360.0f);
+		GuiSlider({ 10.0f, 280.0f, 200.0f, 20.0f }, "0.0", "360.0", & angleB, 0.0f, 360.0f);*/
+
+		//ui.logic();
+
+		rlImGuiBegin();
+
+		if (UI::sliderHelper("Sun Dir X", "Sets sun direction X", { 200.0f, 20.0f }, params.sunDir.x, 0.0f, 1.0f)) {
+			params.shouldSample = false;
+		}
+		if (UI::sliderHelper("Sun Dir Y", "Sets sun direction Y", { 200.0f, 20.0f }, params.sunDir.y, 0.0f, 1.0f)) {
+			params.shouldSample = false;
+		}
+		if (UI::sliderHelper("Sun Dir Z", "Sets sun direction Z", { 200.0f, 20.0f }, params.sunDir.z, 0.0f, 1.0f)) {
+			params.shouldSample = false;
+		}
+
+		rlImGuiEnd();
+
+		params.sunDir = glm::normalize(params.sunDir);
 
 		/*for (size_t i = 0; i < globalBVH.size(); i++) {
 

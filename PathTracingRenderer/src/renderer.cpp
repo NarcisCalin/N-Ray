@@ -1,5 +1,7 @@
 #include "renderer.h"
 #include <random>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/rotate_vector.hpp>
 
 bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	const float EPSILON = 0.0000001f;
@@ -276,7 +278,7 @@ void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& t
 	ray.col += ray.throughput * emission * G / (pdf * PI);
 }
 
-glm::vec3 sky(PathRay& ray) {
+glm::vec3 sky(PathRay& ray, Params& params) {
 	glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
 
 	glm::vec3 skyTop = { 0.263f, 0.553f, 0.769f };
@@ -286,10 +288,98 @@ glm::vec3 sky(PathRay& ray) {
 
 	glm::vec3 skyCol = glm::mix(skyBase, skyTop, upAmount);
 
+	float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
+
+	if (glm::degrees(sunAngle) < params.sunAngle && params.sunLight) {
+		skyCol = glm::vec3{ 1.0f,  1.0f, 0.95f } *params.sunIntensity;
+	}
+
 	return skyCol;
 }
 
-void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) {
+void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, float& isShadow) {
+
+	PathRay sunRay;
+
+	sunRay.src = ray.hitPos + tris[ray.triIdx].normal * 0.001f;
+
+	static thread_local std::mt19937 rng(std::random_device{}());
+	static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+	glm::vec3 sunDir = params.sunDir;
+	sunDir = glm::normalize(sunDir);
+
+	float phi = 2.0f * PI * dist(rng);
+
+	float halfAngle = glm::radians(params.sunAngle * 0.5f);
+	float cosMax = std::cos(halfAngle);
+	float cosTheta = 1.0f - dist(rng) * (1.0f - cosMax);
+	float sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
+
+	glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
+	worldUp = glm::normalize(worldUp);
+
+	if (sunDir == worldUp) {
+		worldUp = { 0.0f, 0.5f, 1.0f };
+		worldUp = glm::normalize(worldUp);
+	}
+
+	glm::vec3 tangent = glm::normalize(glm::cross(sunDir, worldUp));
+	glm::vec3 bitangent = glm::normalize(glm::cross(sunDir, tangent));
+
+	sunRay.dir = glm::normalize(
+		sinTheta * std::cos(phi) * tangent +
+		sinTheta * std::sin(phi) * bitangent +
+		cosTheta * sunDir
+	);
+	sunRay.invDir = 1.0f / sunRay.dir;
+
+	float closestTSun = FLT_MAX;
+	sunRay.hit = false;
+	sunRay.triIdx = UINT32_MAX;
+
+	traverseFlatBVH(sunRay, closestTSun, tris);
+
+	if (!sunRay.hit) {
+		ray.col += ray.throughput * params.environmentIntensity * sky(sunRay, params) / params.sunIntensity;
+	}
+	else {
+		isShadow = true;
+	}
+
+	// REPLACE THE SKY LOGIC IN rayLogic(); WITH THIS WHEN USING SUN SAMPLING
+
+	//if (!ray.hit) {
+		//	ray.active = false;
+
+		//	if (params.environmentLight) {
+
+
+		//		ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
+		//		/*if (!isShadow) {
+		//			float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir) / (glm::length(ray.dir) * glm::length(params.sunDir)));
+		//			if (glm::degrees(sunAngle) > params.sunAngle) {
+		//				ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
+		//			}
+		//		}
+		//		else {
+		//			ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
+		//		}*/
+		//	}
+		//	/*else if (params.environmentLight && bounce == 0) {
+		//		ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
+		//	}*/
+
+		//	break;
+		//}
+}
+
+std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params, bool debug) {
+
+	debugRays.clear();
+
+	bool isShadow = false;
+
 	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
 		if (!ray.active) {
@@ -302,24 +392,13 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 
 		traverseFlatBVH(ray, closestT, tris);
 
-		if (!ray.hit) {
-			ray.active = false;
-
-			if (params.environmentLight) {
-				ray.col += ray.throughput * params.environmentIntensity * sky(ray);
+		if (debug) {
+			float drawLength = closestT;
+			if (closestT == FLT_MAX) {
+				drawLength = 1000.0f;
 			}
 
-			if (params.sunLight) {
-				thread_local std::mt19937 rng(std::random_device{}());
-				thread_local std::uniform_real_distribution<float> sunRand(-params.sunAngle, params.sunAngle);
-
-				float sunRayDiff = glm::dot(ray.dir, params.sunDir);
-				if (sunRayDiff > params.sunCosAngle) {
-					ray.col += ray.throughput * params.sunColor * params.sunIntensity;
-				}
-			}
-
-			break;
+			debugRays.push_back({ ray.src, ray.dir, ray.throughput, drawLength });
 		}
 
 		if (ray.triIdx != UINT32_MAX && ray.active) {
@@ -342,6 +421,7 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 				}
 				else {
 					ray.throughput *= tris[ray.triIdx].col;
+
 					diffuseLighting(ray, interpolatedNormal, tris);
 				}
 			}
@@ -349,8 +429,21 @@ void PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params) 
 				ray.throughput *= tris[ray.triIdx].specularCol;
 			}
 		}
+
+		if (!ray.hit) {
+			ray.active = false;
+
+			if (params.environmentLight) {
+				ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
+			}
+
+			break;
+		}
+
 		ray.invDir = 1.0f / ray.dir;
 	}
+
+	return debugRays;
 }
 
 void PathTracer::rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen& screen, Params& params) {
@@ -430,80 +523,4 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 	}
 
 	drawScreen(screen, params, data, screen.resX, render);
-}
-
-std::vector<DebugRay> PathTracer::rayLogicDebug(PathRay ray, std::vector<Tri>& tris, Params& params) {
-
-	std::vector<DebugRay> debugRays;
-
-	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
-
-		if (!ray.active) {
-			break;
-		}
-
-		float closestT = FLT_MAX;
-		ray.hit = false;
-		ray.triIdx = UINT32_MAX;
-
-		traverseFlatBVH(ray, closestT, tris);
-
-		float drawLength = closestT;
-		if (closestT == FLT_MAX) {
-			drawLength = 1000.0f;
-		}
-
-		debugRays.push_back({ ray.src, ray.dir, ray.throughput, drawLength });
-
-		if (!ray.hit) {
-			ray.active = false;
-
-			if (params.environmentLight) {
-				ray.col += ray.throughput * params.environmentIntensity;
-			}
-
-			if (params.sunLight) {
-				thread_local std::mt19937 rng(std::random_device{}());
-				thread_local std::uniform_real_distribution<float> sunRand(-params.sunAngle, params.sunAngle);
-
-				float sunRayDiff = glm::dot(ray.dir, params.sunDir);
-				if (sunRayDiff > params.sunCosAngle) {
-					ray.col += ray.throughput * params.sunColor * params.sunIntensity;
-				}
-			}
-
-			break;
-		}
-
-		if (ray.triIdx != UINT32_MAX && ray.active) {
-
-			glm::vec3 interpolatedNormal = InterpolateNormal(ray, tris);
-
-			ray.src = ray.hitPos + tris[ray.triIdx].normal * 0.001f;
-
-			float emissionVal = (tris[ray.triIdx].emissionCol.x + tris[ray.triIdx].emissionCol.y + tris[ray.triIdx].emissionCol.z) / 3.0f;
-			bool isEmissive = tris[ray.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
-
-			if (isEmissive) {
-				ray.col += ray.throughput * tris[ray.triIdx].emissionCol * tris[ray.triIdx].emissionIntensity;
-			}
-
-			bool isSpecular = specularLighting(ray, interpolatedNormal, tris);
-
-			if (!isSpecular) {
-				if (tris[ray.triIdx].refraction > 0.0f) {
-					refractionLighting(ray, interpolatedNormal, tris);
-				}
-				else {
-					ray.throughput *= tris[ray.triIdx].col;
-					diffuseLighting(ray, interpolatedNormal, tris);
-				}
-			}
-			else {
-				ray.throughput *= tris[ray.triIdx].specularCol;
-			}
-		}
-	}
-
-	return debugRays;
 }

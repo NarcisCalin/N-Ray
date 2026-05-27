@@ -45,6 +45,8 @@ struct PTCam {
 		}
 	}
 
+	float mouseSensitivity = 0.01f;
+
 	void cameraLogic(Params& params) {
 		float currentSpeed = camSpeed * params.dt;
 
@@ -83,9 +85,17 @@ struct PTCam {
 
 			if (!teleported) {
 				glm::vec3 newTarget = camPos + targetNormal * 10.0f;
+
 				float ratio = float(params.screenSize.x) / float(params.screenSize.y);
-				if (mDelta.x != 0.0f) newTarget += right * mDelta.x * params.dt;
-				if (mDelta.y != 0.0f) newTarget -= up * mDelta.y * params.dt * ratio;
+
+				if (mDelta.x != 0.0f) { 
+					newTarget += right * mDelta.x * mouseSensitivity;
+				}
+
+				if (mDelta.y != 0.0f) { 
+					newTarget -= up * mDelta.y * ratio * mouseSensitivity;
+				}
+
 				targetNormal = glm::normalize(newTarget - camPos);
 			}
 		}

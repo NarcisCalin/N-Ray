@@ -75,7 +75,11 @@ struct PathTracer {
 		return glm::normalize(interpolatedNormal);
 	}
 
-	void rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params);
+	std::vector<DebugRay> debugRays;
+
+	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, float& isShadow); // CURRENTLY UNUSED
+
+	std::vector<DebugRay> rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params, bool debug = false);
 
 	void rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen& screen, Params& params);
 
@@ -137,7 +141,4 @@ struct PathTracer {
 	}
 
 	void render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render);
-
-	std::vector<DebugRay> rayLogicDebug(PathRay ray, std::vector<Tri>& tris, Params& params);
-
 };

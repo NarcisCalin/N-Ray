@@ -288,10 +288,12 @@ glm::vec3 sky(PathRay& ray, Params& params) {
 
 	glm::vec3 skyCol = glm::mix(skyBase, skyTop, upAmount);
 
-	float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
+	if (params.enableSun) {
+		float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
 
-	if (glm::degrees(sunAngle) < params.sunAngle && params.sunLight) {
-		skyCol = glm::vec3{ 1.0f,  1.0f, 0.95f } *params.sunIntensity;
+		if (glm::degrees(sunAngle) < params.sunAngle) {
+			skyCol = params.sunColor *params.sunIntensity;
+		}
 	}
 
 	return skyCol;

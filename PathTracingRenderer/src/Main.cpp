@@ -270,9 +270,6 @@ int main() {
 	cam3D.fovy = myCam.fov;
 	cam3D.projection = CAMERA_PERSPECTIVE;
 
-	float totalMs = 0.0f;
-	int totalFrames = 0;
-
 	Image ptData = {
 		.data = data.frameBuffer.data(),
 		.width = screen.resX,
@@ -283,9 +280,6 @@ int main() {
 
 	Texture2D render = LoadTextureFromImage(ptData);
 
-	float angleA = 0.0f;
-	float angleB = 0.0f;
-
 	rlImGuiSetup(true);
 
 	while (!WindowShouldClose()) {
@@ -294,13 +288,24 @@ int main() {
 
 		ClearBackground(BLACK);
 
-		totalFrames++;
+		params.totalFrames++;
 
 		params.dt = GetFrameTime();
 
-		pt.render(data, myCam, screen, params, render);
+		rlImGuiBegin();
 
-		myCam.cameraLogic(params);
+		if (ImGui::IsAnyItemHovered() || ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
+			params.isMouseHoveringUI = true;
+		}
+		else {
+			params.isMouseHoveringUI = false;
+		}
+
+		if (!params.isMouseHoveringUI) {
+			myCam.cameraLogic(params);
+		}
+
+		pt.render(data, myCam, screen, params, render);
 
 		BeginMode3D(cam3D);
 
@@ -317,7 +322,9 @@ int main() {
 
 		cam3D.fovy = raylibFov;
 
-		traceDebugRay();
+		if (!params.isMouseHoveringUI) {
+			traceDebugRay();
+		}
 
 		/*for (size_t i = 0; i < data.tris.size(); i++) {
 
@@ -350,49 +357,8 @@ int main() {
 
 		EndMode3D();
 
-		DrawFPS(10, 10);
-
-		float ms = params.dt * 1000.0f;
-
-		totalMs += ms;
-
-		float avgMs = totalMs / float(totalFrames);
-
-		DrawText(TextFormat("Frame time: %.2f ms", ms), 10, 40, 20, DARKGRAY);
-
-		DrawText(TextFormat("Avg. Frame time: %.2f ms", avgMs), 10, 60, 20, DARKGRAY);
-
-		DrawText(TextFormat("Triangles: %d", (int)data.tris.size()), 10, 80, 20, DARKGRAY);
-
-		DrawText(TextFormat("Current Sample: %d", params.currentSample), 10, 100, 20, DARKGRAY);
-
-		DrawText(TextFormat("Max Samples: %d", params.maxSamples), 10, 120, 20, DARKGRAY);
-
-		DrawText(TextFormat("Bounces: %d", params.maxBounces), 10, 140, 20, DARKGRAY);
-
-		DrawText(TextFormat("Total time (ms): %.2f ms", totalMs), 10, 160, 20, DARKGRAY);
-
-		DrawText(TextFormat("Total time (sec): %.2f sec", totalMs / 1000.0f), 10, 180, 20, DARKGRAY);
-
-		/*GuiSlider({ 10.0f, 200.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.x, 0.0f, 1.0f);
-		GuiSlider({ 10.0f, 220.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.y, 0.0f, 1.0f);
-		GuiSlider({ 10.0f, 240.0f, 100.0f, 20.0f }, "0.0", "1.0", &params.sunDir.z, 0.0f, 1.0f);
-		GuiSlider({ 10.0f, 260.0f, 200.0f, 20.0f }, "0.0", "360.0", &angleA, 0.0f, 360.0f);
-		GuiSlider({ 10.0f, 280.0f, 200.0f, 20.0f }, "0.0", "360.0", & angleB, 0.0f, 360.0f);*/
-
-		//ui.logic();
-
-		rlImGuiBegin();
-
-		if (UI::sliderHelper("Sun Dir X", "Sets sun direction X", { 200.0f, 20.0f }, params.sunDir.x, 0.0f, 1.0f)) {
-			params.shouldSample = false;
-		}
-		if (UI::sliderHelper("Sun Dir Y", "Sets sun direction Y", { 200.0f, 20.0f }, params.sunDir.y, 0.0f, 1.0f)) {
-			params.shouldSample = false;
-		}
-		if (UI::sliderHelper("Sun Dir Z", "Sets sun direction Z", { 200.0f, 20.0f }, params.sunDir.z, 0.0f, 1.0f)) {
-			params.shouldSample = false;
-		}
+		params.shouldSample = true;
+		ui.logic(params, data);
 
 		rlImGuiEnd();
 

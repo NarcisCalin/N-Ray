@@ -30,13 +30,18 @@ struct Params {
 	float environmentIntensity = 0.75f;
 	float blur = 0.5f;
 
-	bool sunLight = true;
+	bool enableSun = true;
 	glm::vec3 sunDir = { 0.0f, 0.0f, 1.0f };
-	glm::vec3 sunColor = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 sunColor = { 1.0f, 1.0f, 0.95f };
 	float sunIntensity = 100.0f;
 	float sunAngle = 7.53f;
 	size_t emissiveAmount = 0;
 
+	float totalMs = 0.0f;
+	int totalFrames = 0;
+
 	bool shouldSample = true;
 	bool enableSampling = true;
+
+	bool isMouseHoveringUI = false;
 };

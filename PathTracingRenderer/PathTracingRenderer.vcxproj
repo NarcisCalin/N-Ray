@@ -25,6 +25,7 @@
     <ClCompile Include="external\imgui\imgui_widgets.cpp" />
     <ClCompile Include="external\rlImGui\rlImGui.cpp" />
     <ClCompile Include="include\ui.cpp" />
+    <ClCompile Include="src\model.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
@@ -32,9 +33,12 @@
     <ClInclude Include="include\bvh.h" />
     <ClInclude Include="include\camera.h" />
     <ClInclude Include="include\globalParams.h" />
+    <ClInclude Include="include\model.h" />
     <ClInclude Include="include\mouseRay.h" />
     <ClInclude Include="include\objImporter.h" />
     <ClInclude Include="include\renderer.h" />
+    <ClInclude Include="include\saveSystem.h" />
+    <ClInclude Include="include\scene.h" />
     <ClInclude Include="include\screenStartup.h" />
     <ClInclude Include="include\tri.h" />
     <ClInclude Include="include\ui.h" />

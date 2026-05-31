@@ -97,8 +97,8 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
-	ImGui::Separator();
 	ImGui::Spacing();
+	ImGui::Separator();
 
 	ImGui::Text("Camera Settings");
 
@@ -134,20 +134,136 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 
 	buttonHelper("Pick DOF", "Lets you set a focus point by clicking the scene", buttonSize, myCam.clickDof);
 
-	ImGui::Separator();
 	ImGui::Spacing();
-
 	ImGui::Separator();
-	ImGui::Spacing();
 
 	ImGui::Text("Post Settings");
 
+	ImGui::Separator();
+	ImGui::Spacing();
+
 	sliderHelper("Exposure", "Controls image exposure after rendering", sliderSize, params.exposure, 0.0f, 5.0f, LogSlider);
 
-	sliderHelper("Contras", "Controls image contrast", sliderSize, params.contrast, 0.0f, 2.0f, LogSlider);
+	sliderHelper("Contrast", "Controls image contrast", sliderSize, params.contrast, 0.0f, 2.0f, LogSlider);
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
+	ImGui::Text("Scene Settings");
 
 	ImGui::Separator();
 	ImGui::Spacing();
+
+	buttonHelper("Enable Selection", "Allows selecting models", buttonSize, params.enableSelection);
+
+	glm::vec3 newAlbedo = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 newSpecCol = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 newEmissionCol = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 newRefractionCol = { 0.0f, 0.0f, 0.0f };
+
+	float newIOR = 0.0f;
+	float newRoughness = 0.0f;
+	float newEmissionIntensity = 0.0f;
+	float newRefraction = 0.0f;
+	float newMetalness = 0.0f;
+
+	uint32_t selectedAmount = 0;
+
+	for (size_t i = 0; i < data.models.size(); i++) {
+		if (data.models[i].selected) {
+			newAlbedo += data.models[i].albedo;
+			newSpecCol += data.models[i].specularCol;
+			newEmissionCol += data.models[i].emissionCol;
+			newRefractionCol += data.models[i].refractionCol;
+
+			newIOR += data.models[i].IOR;
+			newRoughness += data.models[i].roughness;
+			newEmissionIntensity += data.models[i].emissionIntensity;
+			newRefraction += data.models[i].refraction;
+			newMetalness += data.models[i].metalness;
+
+			selectedAmount++;
+		}
+	}
+
+	if (selectedAmount > 0) {
+		float inv = 1.0f / float(selectedAmount);
+
+		newAlbedo *= inv;
+		newSpecCol *= inv;
+		newEmissionCol *= inv;
+		newRefractionCol *= inv;
+
+		newIOR *= inv;
+		newRoughness *= inv;
+		newEmissionIntensity *= inv;
+		newRefraction *= inv;
+		newMetalness *= inv;
+	}
+
+	if (ImGui::ColorEdit3("Albedo Color", (float*)&newAlbedo, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
+
+	if (ImGui::ColorEdit3("Specular Color", (float*)&newSpecCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
+
+	if (ImGui::ColorEdit3("Emission Color", (float*)&newEmissionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
+
+	if (ImGui::ColorEdit3("Refraction Color", (float*)&newRefractionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("IOR", "Index of Refraction of selected models", sliderSize, newIOR, 0.0f, 200.0f, LogSlider)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Roughness", "Roughness of selected models", sliderSize, newRoughness, 0.0f, 1.0f)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Emission Intensity", "Emission intensity of selected models", sliderSize, newEmissionIntensity, 0.0f, 100.0f, LogSlider)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Refraction", "Refraction of selected models", sliderSize, newRefraction, 0.0f, 1.0f)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Metalness", "Metalness of selected models", sliderSize, newMetalness, 0.0f, 1.0f)) {
+		params.shouldSample = false;
+	}
+
+
+	for (size_t i = 0; i < data.models.size(); i++) {
+		if (data.models[i].selected) {
+			data.models[i].albedo = newAlbedo;
+			data.models[i].specularCol = newSpecCol;
+			data.models[i].emissionCol = newEmissionCol;
+			data.models[i].refractionCol = newRefractionCol;
+
+			data.models[i].IOR = newIOR;
+			data.models[i].roughness = newRoughness;
+			data.models[i].emissionIntensity = newEmissionIntensity;
+			data.models[i].refraction = newRefraction;
+			data.models[i].metalness = newMetalness;
+
+			data.models[i].updateTris(data);
+		}
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
+	ImGui::Text("Debug Settings");
+
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	buttonHelper("Debug Ray", "Lets cast and see a ray by clicking on the scene", buttonSize, params.enableDebugRay);
 
 	ImGui::End();
 

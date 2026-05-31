@@ -75,9 +75,9 @@ struct PTCam {
 			if (keyDownSample(KEY_LEFT_SHIFT, params)) camPos.z += currentSpeed;
 		}
 
-		if (!params.isMouseHoveringUI) {
+		glm::vec2 mDelta = { GetMouseDelta().x, GetMouseDelta().y };
+		if (!params.isMouseHoveringUI && (mDelta.x != 0.0f || mDelta.y != 0.0f)) {
 			if (mouseDownSample(1, params)) {
-				glm::vec2 mDelta = { GetMouseDelta().x, GetMouseDelta().y };
 
 				bool teleported = false;
 				if (GetMousePosition().x < 0.0f) {

@@ -90,6 +90,7 @@ struct AreaLight {
 			{0.0f, 0.0f, 0.0f},
 			{0.0f, 0.0f, 0.0f},
 			{emissionCol},
+			{0.0f, 0.0f, 0.0f},
 
 			{-size + pos.x, -size + pos.y, pos.z},
 			{size + pos.x, size + pos.y, pos.z},
@@ -111,6 +112,7 @@ struct AreaLight {
 			{0.0f, 0.0f, 0.0f},
 			{0.0f, 0.0f, 0.0f},
 			{emissionCol},
+			{0.0f, 0.0f, 0.0f},
 
 			{size + pos.x, size + pos.y, pos.z},
 			{-size + pos.x, -size + pos.y, pos.z},
@@ -246,6 +248,26 @@ void setDofDist() {
 	}
 }
 
+void selectModel() {
+	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
+		PathRay selecRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+
+		float closestT = FLT_MAX;
+		selecRay.hit = false;
+		selecRay.triIdx = UINT32_MAX;
+
+		pt.traverseFlatBVH(selecRay, closestT, data.tris);
+
+		for (size_t i = 0; i < data.models.size(); i++) {
+			data.models[i].selected = false;
+		}
+
+		if (selecRay.hit) {
+			data.models[data.tris[selecRay.triIdx].modelIdx].selected = true;;
+		}
+	}
+}
+
 int main() {
 
 	SetConfigFlags(FLAG_WINDOW_ALWAYS_RUN);
@@ -253,10 +275,17 @@ int main() {
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
-	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true };
-	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
-	ObjImporter red{ "models/sceneRed.obj", data, 1.5f, 0.15f, 0.0f, 0.0f, 0.0f, true };
+	ObjImporter scene{ "models/scene.obj", data,{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
+
+	ObjImporter glass{ "models/sceneGlass.obj", data,{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true };
+
+	ObjImporter metal{ "models/sceneMetal.obj", data,{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
+
+	ObjImporter red{ "models/sceneRed.obj", data,{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.15f, 0.0f, 0.0f, 0.0f, true };
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
@@ -276,7 +305,10 @@ int main() {
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
 		data.tris[i].idx = uint32_t(i);
+		data.models[data.tris[i].modelIdx].tris.push_back(uint32_t(i));
 	}
+
+	std::cout << data.models.size();
 
 	cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
 	cam3D.target = { myCam.camTarget.x, myCam.camTarget.y, myCam.camTarget.z };
@@ -342,6 +374,10 @@ int main() {
 			params.shouldSample = false;
 		}
 
+		if (params.enableSelection) {
+			selectModel();
+		}
+
 		myCam.cameraLogic(params, screen.ratio);
 
 		cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
@@ -356,7 +392,9 @@ int main() {
 
 		//rlDisableBackfaceCulling();
 
-		traceDebugRay();
+		if (params.enableDebugRay) {
+			traceDebugRay();
+		}
 
 		/*for (size_t i = 0; i < data.tris.size(); i++) {
 

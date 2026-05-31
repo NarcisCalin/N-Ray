@@ -170,6 +170,7 @@ void PathTracer::refractionLighting(PathRay& ray, glm::vec3 normal, std::vector<
 		cosi = -cosi;
 		ray.src = ray.hitPos - normal * 0.001f;
 		ray.isRefraction = true;
+		ray.throughput *= tris[ray.triIdx].refractionCol;
 	}
 
 	float eta = n1 / n2;
@@ -390,6 +391,9 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris,
 
 	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
+		thread_local std::mt19937 rng(std::random_device{}());
+		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
 		if (!ray.active) {
 			break;
 		}
@@ -424,11 +428,11 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris,
 			bool isSpecular = specularLighting(ray, interpolatedNormal, tris);
 
 			if (!isSpecular) {
-				if (tris[ray.triIdx].refraction > 0.0f) {
+				if (dist(rng) < tris[ray.triIdx].refraction) {
 					refractionLighting(ray, interpolatedNormal, tris);
 				}
 				else {
-					ray.throughput *= tris[ray.triIdx].col;
+					ray.throughput *= tris[ray.triIdx].albedo;
 
 					diffuseLighting(ray, interpolatedNormal, tris);
 				}

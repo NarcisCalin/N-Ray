@@ -1,12 +1,12 @@
 #pragma once
 
-#pragma once
 #include <glm/glm.hpp>
-#include <tri.h>
 #include <raylib.h>
+#include <tri.h>
 
 
 struct PathRay;
+struct PTModel;
 
 struct Data {
 	std::vector<Tri> tris;
@@ -14,6 +14,7 @@ struct Data {
 	std::vector<PathRay> rays;
 	std::vector<Color> frameBuffer;
 	std::vector<glm::vec3> accumBuffer;
+	std::vector<PTModel> models;
 };
  
 struct Params { 
@@ -47,4 +48,6 @@ struct Params {
 	bool enableSampling = true;
 
 	bool isMouseHoveringUI = false;
+	bool enableDebugRay = false;
+	bool enableSelection = true;
 };

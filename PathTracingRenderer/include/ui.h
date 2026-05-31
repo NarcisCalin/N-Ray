@@ -6,6 +6,7 @@
 #include <glm.hpp>
 #include <globalParams.h>
 #include <camera.h>
+#include <model.h>
 
 struct UI {
 

@@ -3,43 +3,27 @@
 #include <fstream>
 #include <sstream>
 #include <memory>
-#include <globalParams.h>
+#include <model.h>
 
 struct ObjImporter {
 
 	float sceneScale = 1.0f;
 	std::string fileName;
 
-	//glm::vec3 col;
-	float IOR;
-	float roughness;
-	float emissionIntensity;
-	float refraction;
-	float metalness;
-	bool doubleSided;
-
 	ObjImporter(
 		std::string fileName,
 		Data& data,
+		glm::vec3 albedo,
+		glm::vec3 specularCol,
+		glm::vec3 emissionCol,
+		glm::vec3 refractionCol,
 		float IOR,
 		float roughness,
 		float emissionIntensity,
 		float refraction,
 		float metalness,
 		bool doubleSided
-	) :
-		fileName(fileName),
-		IOR(IOR),
-		roughness(roughness),
-		emissionIntensity(emissionIntensity),
-		refraction(refraction),
-		metalness(metalness),
-		doubleSided(doubleSided)
-	{
-		objImporter(data);
-	}
-
-	void objImporter(Data& data) {
+	) {
 		std::ifstream file(fileName);
 		if (!file) {
 			std::cerr << "Could not open file\n";
@@ -47,26 +31,32 @@ struct ObjImporter {
 		}
 
 		std::vector<glm::vec3> vertices;
-		std::vector<glm::vec3> colors;
 		std::vector<glm::vec3> normals;
 
 		std::string line;
+
+		data.models.push_back({
+					albedo, specularCol, emissionCol, refractionCol,
+					IOR,
+					roughness,
+					emissionIntensity,
+					refraction,
+					metalness,
+					doubleSided,
+					uint32_t(data.models.size())
+			});
 
 		while (std::getline(file, line)) {
 			std::stringstream ss(line);
 			std::string type;
 			ss >> type;
-
 			if (type == "v") {
 
-				glm::vec3 v, c(0.7f);
+				glm::vec3 v;
 
 				ss >> v.x >> v.y >> v.z;
 
-				if (ss >> c.x >> c.y >> c.z) {}
-
 				vertices.push_back(v);
-				colors.push_back(c);
 			}
 			else if (type == "vn") {
 
@@ -132,9 +122,6 @@ struct ObjImporter {
 						continue;
 					}
 
-					glm::vec3 avgColor =
-						(colors[iA] + colors[iB] + colors[iC]) / 3.0f;
-
 					glm::vec3 aN(0.0f);
 					glm::vec3 bN(0.0f);
 					glm::vec3 cN(0.0f);
@@ -149,9 +136,10 @@ struct ObjImporter {
 						cN = normals[nC];
 
 					data.tris.push_back({
-						avgColor,
-						{1.0f,1.0f,1.0f},
-						avgColor,
+						albedo,
+						specularCol,
+						emissionCol,
+						refractionCol,
 
 						vertices[iA] * sceneScale,
 						vertices[iB] * sceneScale,
@@ -168,6 +156,8 @@ struct ObjImporter {
 						metalness,
 						doubleSided
 						});
+
+					data.tris.back().modelIdx = uint32_t(data.models.size() - 1);
 				}
 			}
 		}

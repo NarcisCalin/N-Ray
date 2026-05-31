@@ -25,12 +25,15 @@ struct Params {
 
 	int maxBounces = 5;
 	int maxSamples = 50000;
+	int raysPerPixel = 1;
 	int currentSample = 0;
-	bool environmentLight = true;
-	float environmentIntensity = 0.75f;
-	float blur = 0.5f;
+	bool enableSky = true;
+	float skyIntensity = 0.75f;
+	float blur = 1.0f;
+	float exposure = 1.0f;
+	float contrast = 0.8f;
 
-	bool enableSun = true;
+	bool enableSun = false;
 	glm::vec3 sunDir = { 0.0f, 0.0f, 1.0f };
 	glm::vec3 sunColor = { 1.0f, 1.0f, 0.95f };
 	float sunIntensity = 100.0f;

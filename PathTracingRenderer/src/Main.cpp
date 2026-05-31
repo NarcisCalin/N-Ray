@@ -24,6 +24,7 @@
 #include <camera.h>
 #include <objImporter.h>
 #include <ui.h>
+#include <mouseRay.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/rotate_vector.hpp>
@@ -34,6 +35,7 @@ Screen screen{ float(params.screenSize.x), float(params.screenSize.y) };
 PathTracer pt;
 PTCam myCam;
 UI ui;
+MouseRay mRayGen;
 
 std::vector<BVH> globalBVH;
 
@@ -188,20 +190,14 @@ void findEmissiveAmount() {
 
 Camera3D cam3D;
 
-Ray mouseRay = GetScreenToWorldRay({ 0.0f, 0.0f }, cam3D);
-
 std::vector<DebugRay> debugRays;
 
 float debugRaySpeed = 50.0f;
 
 void traceDebugRay() {
-	if (IsMouseButtonPressed(0)) {
-		mouseRay = GetScreenToWorldRay(GetMousePosition(), cam3D);
+	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI && !myCam.clickDof) {
 
-		PathRay mRay{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
-
-		mRay.src = { mouseRay.position.x, mouseRay.position.y, mouseRay.position.z };
-		mRay.dir = { mouseRay.direction.x, mouseRay.direction.y, mouseRay.direction.z };
+		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
 
 		debugRays = pt.rayLogic(mRay, data.tris, params, true);
 	}
@@ -233,6 +229,23 @@ void traceDebugRay() {
 	}
 }
 
+void setDofDist() {
+	PathRay dofRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+
+	float closestT = FLT_MAX;
+	dofRay.hit = false;
+	dofRay.triIdx = UINT32_MAX;
+
+	pt.traverseFlatBVH(dofRay, closestT, data.tris);
+
+	if (!dofRay.hit) {
+		myCam.focusDist = closestT;
+	}
+	else {
+		myCam.focusDist = glm::distance(myCam.camPos, dofRay.hitPos);
+	}
+}
+
 int main() {
 
 	SetConfigFlags(FLAG_WINDOW_ALWAYS_RUN);
@@ -241,7 +254,7 @@ int main() {
 
 	std::cout << "Loading Scene..." << '\n';
 	ObjImporter scene{ "models/scene.obj", data, 1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
-	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true};
+	ObjImporter glass{ "models/sceneGlass.obj", data, 1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true };
 	ObjImporter metal{ "models/sceneMetal.obj", data, 1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
 	ObjImporter red{ "models/sceneRed.obj", data, 1.5f, 0.15f, 0.0f, 0.0f, 0.0f, true };
 
@@ -252,6 +265,7 @@ int main() {
 	//ObjImporter emissive{ "models/sceneEmissive.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, true };
 
 	std::cout << "Initializing Window..." << '\n';
+	int prevRes = params.res;
 	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
 
 	std::cout << "Build BVH Tree..." << '\n';
@@ -301,9 +315,40 @@ int main() {
 			params.isMouseHoveringUI = false;
 		}
 
-		if (!params.isMouseHoveringUI) {
-			myCam.cameraLogic(params);
+		if (prevRes != params.res) {
+			prevRes = params.res;
+			screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
+			data.rays.clear();
+
+			UnloadTexture(render);
+			Image ptData = {
+				.data = data.frameBuffer.data(),
+				.width = screen.resX,
+				.height = screen.resY,
+				.mipmaps = 1,
+				.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+			};
+			render = LoadTextureFromImage(ptData);
+
+			params.shouldSample = false;
 		}
+
+		if (params.enableSampling && !params.isMouseHoveringUI) {
+			params.shouldSample = true;
+		}
+
+		if (myCam.clickDof && IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
+			setDofDist();
+			params.shouldSample = false;
+		}
+
+		myCam.cameraLogic(params, screen.ratio);
+
+		cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
+		cam3D.target = { myCam.camTarget.x, myCam.camTarget.y, myCam.camTarget.z };
+		cam3D.up = { myCam.up.x, myCam.up.y, myCam.up.z };
+
+		cam3D.fovy = myCam.fovV;
 
 		pt.render(data, myCam, screen, params, render);
 
@@ -311,35 +356,22 @@ int main() {
 
 		//rlDisableBackfaceCulling();
 
-		cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
-		cam3D.target = { myCam.camTarget.x, myCam.camTarget.y, myCam.camTarget.z };
-		cam3D.up = { myCam.up.x, myCam.up.y, myCam.up.z };
-
-		float halfFovRadians = glm::radians(myCam.fov) * 0.5f;
-		float actualMaxY = 0.5f * tan(halfFovRadians);
-		float trueFovRadians = 2.0f * atan(actualMaxY);
-		float raylibFov = glm::degrees(trueFovRadians);
-
-		cam3D.fovy = raylibFov;
-
-		if (!params.isMouseHoveringUI) {
-			traceDebugRay();
-		}
+		traceDebugRay();
 
 		/*for (size_t i = 0; i < data.tris.size(); i++) {
 
 			Color finalcol = { unsigned char(data.tris[i].col.x * 255),
 				unsigned char(data.tris[i].col.y * 255),
 				unsigned char(data.tris[i].col.z * 255),
-				50};
+				100 };
 
 			DrawTriangle3D({ data.tris[i].a.x,data.tris[i].a.y,data.tris[i].a.z },
 				{ data.tris[i].b.x,data.tris[i].b.y,data.tris[i].b.z },
 				{ data.tris[i].c.x,data.tris[i].c.y,data.tris[i].c.z },
 				finalcol);
-		}
+		}*/
 
-		for (size_t i = 0; i < globalBVH.size(); i++) {
+		/*for (size_t i = 0; i < globalBVH.size(); i++) {
 
 			if (globalBVH[i].children[0] == UINT32_MAX || globalBVH[i].children[1] == UINT32_MAX) {
 				continue;
@@ -358,11 +390,9 @@ int main() {
 		EndMode3D();
 
 		params.shouldSample = true;
-		ui.logic(params, data);
+		ui.logic(params, data, myCam);
 
 		rlImGuiEnd();
-
-		params.sunDir = glm::normalize(params.sunDir);
 
 		/*for (size_t i = 0; i < globalBVH.size(); i++) {
 

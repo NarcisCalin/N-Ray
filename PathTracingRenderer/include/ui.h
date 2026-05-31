@@ -5,10 +5,22 @@
 #include <unordered_map>
 #include <glm.hpp>
 #include <globalParams.h>
+#include <camera.h>
 
 struct UI {
 
-	void logic(Params& params, Data& data);
+	int avgMsIdx = 0;
+	static const int avgMsIdxAmount = 50;
+	float avgMsFrames[avgMsIdxAmount] = { 0.0f };
+
+	void logic(Params& params, Data& data, PTCam& myCam);
+
+	enum ExtraParams {
+		LogSlider
+	};
+
+	static bool sliderHelper(std::string label, std::string tooltip, glm::vec2 size, float& parameter, float minVal, float maxVal, 
+		int logarithmic, bool isEnabled = true);
 
 	static bool sliderHelper(std::string label, std::string tooltip, glm::vec2 size, float& parameter, float minVal, float maxVal,
 		bool isEnabled = true);

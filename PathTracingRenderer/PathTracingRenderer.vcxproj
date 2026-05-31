@@ -32,6 +32,7 @@
     <ClInclude Include="include\bvh.h" />
     <ClInclude Include="include\camera.h" />
     <ClInclude Include="include\globalParams.h" />
+    <ClInclude Include="include\mouseRay.h" />
     <ClInclude Include="include\objImporter.h" />
     <ClInclude Include="include\renderer.h" />
     <ClInclude Include="include\screenStartup.h" />

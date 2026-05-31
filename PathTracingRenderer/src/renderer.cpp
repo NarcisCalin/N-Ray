@@ -2,6 +2,7 @@
 #include <random>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/rotate_vector.hpp>
+#include <omp.h>
 
 bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	const float EPSILON = 0.0000001f;
@@ -279,20 +280,25 @@ void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& t
 }
 
 glm::vec3 sky(PathRay& ray, Params& params) {
-	glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
 
-	glm::vec3 skyTop = { 0.263f, 0.553f, 0.769f };
-	glm::vec3 skyBase = { 0.89f, 0.824f, 0.698f };
+	glm::vec3 skyCol(params.skyIntensity);
 
-	float upAmount = glm::pow(glm::max(glm::dot(ray.dir, worldUp), 0.0f), 0.5f);
+	if (params.enableSky) {
+		glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
 
-	glm::vec3 skyCol = glm::mix(skyBase, skyTop, upAmount);
+		glm::vec3 skyTop = { 0.263f, 0.553f, 0.769f };
+		glm::vec3 skyBase = { 0.89f, 0.824f, 0.698f };
+
+		float upAmount = glm::pow(glm::max(glm::dot(ray.dir, worldUp), 0.0f), 0.5f);
+
+		skyCol = glm::mix(skyBase, skyTop, upAmount) * params.skyIntensity;
+	}
 
 	if (params.enableSun) {
 		float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
 
 		if (glm::degrees(sunAngle) < params.sunAngle) {
-			skyCol = params.sunColor *params.sunIntensity;
+			skyCol = params.sunColor * params.sunIntensity;
 		}
 	}
 
@@ -343,7 +349,7 @@ void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params,
 	traverseFlatBVH(sunRay, closestTSun, tris);
 
 	if (!sunRay.hit) {
-		ray.col += ray.throughput * params.environmentIntensity * sky(sunRay, params) / params.sunIntensity;
+		ray.col += ray.throughput * params.skyIntensity * sky(sunRay, params) / params.sunIntensity;
 	}
 	else {
 		isShadow = true;
@@ -435,9 +441,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, std::vector<Tri>& tris,
 		if (!ray.hit) {
 			ray.active = false;
 
-			if (params.environmentLight) {
-				ray.col += ray.throughput * params.environmentIntensity * sky(ray, params);
-			}
+			ray.col += ray.throughput * sky(ray, params);
 
 			break;
 		}
@@ -455,27 +459,41 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen&
 #pragma omp parallel for collapse(2)
 	for (int y = 0; y < screen.resY; y++) {
 		for (int x = 0; x < screen.resX; x++) {
-
 			thread_local std::mt19937 rng(std::random_device{}());
-			thread_local std::uniform_real_distribution<float> dist(-params.blur, params.blur);
+			std::uniform_real_distribution<float> unitDist(0.0f, 1.0f);
 
-			float offsetX = ((static_cast<float>(x) + 0.5f + dist(rng)) / static_cast<float>(screen.resX) - 0.5f);
-			float offsetY = ((static_cast<float>(y) + 0.5f + dist(rng)) / static_cast<float>(screen.resY) - 0.5f);
+			float jitterX = unitDist(rng) - 0.5f;
+			float jitterY = unitDist(rng) - 0.5f;
 
-			glm::vec3 dir = myCam.camNormal;
-			dir += myCam.right * offsetX * myCam.verticalScale * screen.ratio;
-			dir -= myCam.up * offsetY * myCam.verticalScale;
-			dir = glm::normalize(dir);
+			float angle = unitDist(rng) * 2.0f * PI;
+			float radius = myCam.aperture * sqrtf(unitDist(rng));
+			glm::vec2 diskSample = { glm::cos(angle) * radius, glm::sin(angle) * radius };
+
+			float srcOffsetX = (static_cast<float>(x) + 0.5f + jitterX * params.blur) / static_cast<float>(screen.resX) - 0.5f;
+			float srcOffsetY = (static_cast<float>(y) + 0.5f + jitterY * params.blur) / static_cast<float>(screen.resY) - 0.5f;
+
+			glm::vec3 src = myCam.camPos;
+
+			src -= myCam.right * (srcOffsetX) * (myCam.sensorSize / 1000.0f);
+			src += myCam.up * (srcOffsetY) * ((myCam.sensorSize / 1000.0f) / screen.ratio);
+
+			glm::vec3 dir = glm::normalize(myCam.focalPoint - src);
+
+			glm::vec3 focusPoint = myCam.camPos + (dir * (myCam.focusDist / glm::dot(dir, myCam.camNormal)));
+
+			src -= myCam.right * (diskSample.x) * (myCam.sensorSize / 1000.0f);
+			src += myCam.up * (diskSample.y) * ((myCam.sensorSize / 1000.0f) / screen.ratio);
+
+			dir = glm::normalize(focusPoint - src);
 
 			int index = y * screen.resX + x;
 
-			rays[index].src = myCam.camPos;
+			rays[index].src = src;
 			rays[index].dir = dir;
-			rays[index].invDir = 1.0f / rays[index].dir;
-
+			rays[index].invDir = 1.0f / dir;
 			rays[index].active = true;
 			rays[index].col = glm::vec3(0.0f);
-			rays[index].throughput = glm::vec3(1.0f);
+			rays[index].throughput = glm::vec3(1.0f * myCam.ISO);
 		}
 	}
 }
@@ -484,6 +502,35 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 	if (params.shouldSample) {
 		if (params.currentSample < params.maxSamples) {
+
+			for (int rays = 0; rays < params.raysPerPixel; rays++) {
+				rayGeneration(data.rays, myCam, screen, params);
+
+#pragma omp parallel for
+				for (int i = 0; i < data.rays.size(); i++) {
+					rayLogic(data.rays[i], data.tris, params);
+				}
+
+				for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+					PathRay& r = data.rays[i];
+
+					data.accumBuffer[i] += r.col;
+				}
+			}
+
+			params.currentSample++;
+		}
+	}
+	else {
+
+		params.currentSample = 1;
+
+		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+
+			data.accumBuffer[i] = { 0.0f, 0.0f, 0.0f };
+		}
+
+		for (int rays = 0; rays < params.raysPerPixel; rays++) {
 
 			rayGeneration(data.rays, myCam, screen, params);
 
@@ -497,30 +544,6 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 				data.accumBuffer[i] += r.col;
 			}
-
-			params.currentSample++;
-		}
-	}
-	else {
-
-		params.currentSample = 0;
-
-		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
-
-			data.accumBuffer[i] = { 0.0f, 0.0f, 0.0f };
-		}
-
-		rayGeneration(data.rays, myCam, screen, params);
-
-#pragma omp parallel for
-		for (int i = 0; i < data.rays.size(); i++) {
-			rayLogic(data.rays[i], data.tris, params);
-		}
-
-		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
-			PathRay& r = data.rays[i];
-
-			data.accumBuffer[i] += r.col;
 		}
 	}
 

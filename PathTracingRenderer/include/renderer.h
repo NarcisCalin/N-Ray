@@ -83,8 +83,6 @@ struct PathTracer {
 
 	void rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen& screen, Params& params);
 
-	float contrast = 0.8f;
-
 	glm::vec3 contrastSCurve(glm::vec3 x, float c) {
 
 		auto curve = [&](float v) -> float {
@@ -103,14 +101,18 @@ struct PathTracer {
 
 	void drawScreen(Screen& screen, Params& params, Data& data, int& width, Texture2D& render) {
 
-		float invSamples = params.currentSample > 0 ? 1.0f / float(params.currentSample) : 1.0f;
+		float invSamples = params.currentSample > 0 ? 1.0f / (float(params.currentSample) * float(params.raysPerPixel)) : 1.0f;
 
 #pragma omp parallel for
 		for (int i = 0; i < data.frameBuffer.size(); i++) {
 
-			glm::vec3 col = glm::min(data.accumBuffer[i] * invSamples, 1.0f);
+			glm::vec3 col = data.accumBuffer[i] * invSamples;
 
-			colorManagement(contrast, col);
+			col *= params.exposure;
+
+			col = glm::min(col, 1.0f);
+
+			colorManagement(params.contrast, col);
 
 			Color finalCol = { unsigned char(col.x * 255),
 				unsigned char(col.y * 255),
@@ -128,16 +130,6 @@ struct PathTracer {
 			0.0f,
 			WHITE
 		);
-
-		if (IsKeyPressed(KEY_UP)) {
-			contrast += 0.1f;
-			std::cout << "Contrast: " << contrast << '\n';
-		}
-
-		if (IsKeyPressed(KEY_DOWN)) {
-			contrast -= 0.1f;
-			std::cout << "Contrast: " << contrast << '\n';
-		}
 	}
 
 	void render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render);

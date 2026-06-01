@@ -17,10 +17,13 @@ struct ObjImporter {
 		glm::vec3 specularCol,
 		glm::vec3 emissionCol,
 		glm::vec3 refractionCol,
+		glm::vec3 volumeCol,
 		float IOR,
 		float roughness,
 		float emissionIntensity,
 		float refraction,
+		float volume,
+		float density,
 		float metalness,
 		bool doubleSided
 	) {
@@ -36,11 +39,13 @@ struct ObjImporter {
 		std::string line;
 
 		data.models.push_back({
-					albedo, specularCol, emissionCol, refractionCol,
+					albedo, specularCol, emissionCol, refractionCol, volumeCol,
 					IOR,
 					roughness,
 					emissionIntensity,
 					refraction,
+					volume,
+					density,
 					metalness,
 					doubleSided,
 					uint32_t(data.models.size())
@@ -140,6 +145,7 @@ struct ObjImporter {
 						specularCol,
 						emissionCol,
 						refractionCol,
+						volumeCol,
 
 						vertices[iA] * sceneScale,
 						vertices[iB] * sceneScale,
@@ -153,6 +159,8 @@ struct ObjImporter {
 						roughness,
 						emissionIntensity,
 						refraction,
+						volume,
+						density,
 						metalness,
 						doubleSided
 						});

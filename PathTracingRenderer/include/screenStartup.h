@@ -5,17 +5,16 @@
 
 struct Screen {
 
-	float screenSizeX;
-	float screenSizeY;
+	float screenSizeX = 0.0f;
+	float screenSizeY = 0.0f;
 
-	float ratio;
+	float ratio = 0.0f;
 
-	int resX;
-	int resY;
+	int resX = 0;
+	int resY = 0;
 
 	Screen(float screenSizeX, float screenSizeY) :
-		screenSizeX(screenSizeX), screenSizeY(screenSizeY)
-	{
+		screenSizeX(screenSizeX), screenSizeY(screenSizeY) {
 	}
 
 	void initScreen(int& res, std::vector<Color>& framebuffer, std::vector<glm::vec3>& accumBuffer) {

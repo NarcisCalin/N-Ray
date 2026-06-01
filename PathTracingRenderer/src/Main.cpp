@@ -38,6 +38,7 @@ UI ui;
 MouseRay mRayGen;
 
 std::vector<BVH> globalBVH;
+std::vector<CompactBVH> globalCompactBVH;
 
 void createFlatBVH() {
 
@@ -91,6 +92,7 @@ struct AreaLight {
 			{0.0f, 0.0f, 0.0f},
 			{emissionCol},
 			{0.0f, 0.0f, 0.0f},
+			{0.0f, 0.0f, 0.0f},
 
 			{-size + pos.x, -size + pos.y, pos.z},
 			{size + pos.x, size + pos.y, pos.z},
@@ -105,6 +107,8 @@ struct AreaLight {
 			emissionStrength,
 			0.0f,
 			0.0f,
+			0.0f,
+			0.0f,
 			false
 		},
 
@@ -112,6 +116,7 @@ struct AreaLight {
 			{0.0f, 0.0f, 0.0f},
 			{0.0f, 0.0f, 0.0f},
 			{emissionCol},
+			{0.0f, 0.0f, 0.0f},
 			{0.0f, 0.0f, 0.0f},
 
 			{size + pos.x, size + pos.y, pos.z},
@@ -125,6 +130,8 @@ struct AreaLight {
 			1.0f,
 			1.0f,
 			emissionStrength,
+			0.0f,
+			0.0f,
 			0.0f,
 			0.0f,
 			false
@@ -228,6 +235,7 @@ void traceDebugRay() {
 		glm::vec3 endPos = r.src + length;
 
 		DrawCylinderEx({ r.src.x, r.src.y, r.src.z }, { endPos.x, endPos.y, endPos.z }, 0.01f, 0.01f, 12, finalCol);
+		//DrawLine3D({ r.src.x, r.src.y, r.src.z }, { endPos.x, endPos.y, endPos.z }, finalCol);
 	}
 }
 
@@ -238,7 +246,7 @@ void setDofDist() {
 	dofRay.hit = false;
 	dofRay.triIdx = UINT32_MAX;
 
-	pt.traverseFlatBVH(dofRay, closestT, data.tris);
+	pt.traverseFlatBVH(dofRay, closestT, data.tris, globalCompactBVH);
 
 	if (!dofRay.hit) {
 		myCam.focusDist = closestT;
@@ -256,7 +264,7 @@ void selectModel() {
 		selecRay.hit = false;
 		selecRay.triIdx = UINT32_MAX;
 
-		pt.traverseFlatBVH(selecRay, closestT, data.tris);
+		pt.traverseFlatBVH(selecRay, closestT, data.tris, globalCompactBVH);
 
 		for (size_t i = 0; i < data.models.size(); i++) {
 			data.models[i].selected = false;
@@ -275,17 +283,21 @@ int main() {
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	ObjImporter scene{ "models/scene.obj", data,{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},
-		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, false };
+	ObjImporter scene{ "models/scene.obj", data,
+		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
-	ObjImporter glass{ "models/sceneGlass.obj", data,{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 0.0f , true };
+	ObjImporter glass{ "models/sceneGlass.obj", data,
+		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 15.0f, 0.0f , true };
 
-	ObjImporter metal{ "models/sceneMetal.obj", data,{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 0.0f, 1.0f, true };
+	ObjImporter metal{ "models/sceneMetal.obj", data,
+		{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, true };
 
-	ObjImporter red{ "models/sceneRed.obj", data,{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.15f, 0.0f, 0.0f, 0.0f, true };
+	ObjImporter red{ "models/sceneRed.obj", data,
+		{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true };
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
@@ -299,6 +311,9 @@ int main() {
 
 	std::cout << "Build BVH Tree..." << '\n';
 	createFlatBVH();
+	if (!globalBVH.empty()) {
+		pt.flattenBVH(0, globalBVH, globalCompactBVH);
+	}
 
 	/*sortByEmission();
 	findEmissiveAmount();*/

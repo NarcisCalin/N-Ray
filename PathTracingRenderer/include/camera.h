@@ -81,20 +81,20 @@ struct PTCam {
 
 				bool teleported = false;
 				if (GetMousePosition().x < 0.0f) {
-					SetMousePosition(params.screenSize.x, GetMousePosition().y);
+					SetMousePosition(params.screenSize.x, int(GetMousePosition().y));
 					teleported = true;
 				}
 				if (GetMousePosition().x > params.screenSize.x) {
-					SetMousePosition(0, GetMousePosition().y);
+					SetMousePosition(0, int(GetMousePosition().y));
 					teleported = true;
 				}
 
 				if (GetMousePosition().y < 0.0f) {
-					SetMousePosition(GetMousePosition().x, params.screenSize.y);
+					SetMousePosition(int(GetMousePosition().x), params.screenSize.y);
 					teleported = true;
 				}
 				if (GetMousePosition().y > params.screenSize.y) {
-					SetMousePosition(GetMousePosition().x, 0);
+					SetMousePosition(int(GetMousePosition().x), 0);
 					teleported = true;
 				}
 

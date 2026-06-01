@@ -10,10 +10,13 @@ void PTModel::updateTris(Data& data) {
 		t.specularCol = specularCol;
 		t.emissionCol = emissionCol;
 		t.refractionCol = refractionCol;
+		t.volumeCol = volumeCol;
 		t.IOR = IOR;
 		t.roughness = roughness;
 		t.emissionIntensity = emissionIntensity;
 		t.refraction = refraction;
+		t.volume = volume;
+		t.density = density;
 		t.metalness = metalness;
 		t.doubleSided = doubleSided;
 	}

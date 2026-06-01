@@ -13,10 +13,12 @@ struct PathRay {
 	glm::vec3 hitPos;
 	glm::vec3 col = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 throughput = { 1.0f, 1.0f, 1.0f };
+	float length = FLT_MAX;
 	uint32_t triIdx;
 	bool hit = false;
 	bool active = true;
 	bool isRefraction = false;
+	bool isVolume = false;
 };
 
 struct DebugRay {
@@ -33,7 +35,7 @@ struct PathTracer {
 
 	bool RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t);
 
-	bool rayAABB(const PathRay& ray, glm::vec3& boxMin, glm::vec3& boxMax);
+	bool rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT);
 
 	void diffuseLighting(PathRay& ray, glm::vec3& normal, std::vector<Tri>& tris);
 
@@ -45,7 +47,36 @@ struct PathTracer {
 
 	void refractionLighting(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris);
 
-	void traverseFlatBVH(PathRay& ray, float& closestT, std::vector<Tri>& tris);
+	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
+		const BVH& buildNode = buildNodes[buildNodeIdx];
+
+		CompactBVH compactNode;
+		compactNode.min = buildNode.min;
+		compactNode.max = buildNode.max;
+
+		uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
+
+		flatNodes.push_back(compactNode);
+
+		if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
+
+			uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
+
+			flatNodes[myFlatIndex].triCount = count;
+			flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
+
+		}
+		else {
+			flatNodes[myFlatIndex].triCount = 0;
+
+			flattenBVH(buildNode.children[0], buildNodes, flatNodes);
+			flattenBVH(buildNode.children[1], buildNodes, flatNodes);
+
+			flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
+		}
+	}
+
+	void traverseFlatBVH(PathRay& ray, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
 
 	void directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params);
 
@@ -77,7 +108,7 @@ struct PathTracer {
 
 	std::vector<DebugRay> debugRays;
 
-	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, float& isShadow); // CURRENTLY UNUSED
+	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
 
 	std::vector<DebugRay> rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params, bool debug = false);
 

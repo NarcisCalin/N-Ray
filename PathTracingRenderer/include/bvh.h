@@ -3,17 +3,19 @@
 #include <tri.h>
 
 struct BVH;
+struct CompactBVH;
 extern std::vector<BVH> globalBVH;
+extern std::vector<CompactBVH> globalCompactBVH;
 
 struct BVH {
-	glm::vec3 min;
-	glm::vec3 max;
-	glm::vec3 splitPoint = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 min = glm::vec3(0.0f);
+	glm::vec3 max = glm::vec3(0.0f);
+	glm::vec3 splitPoint = glm::vec3(0.0f);
 
 	uint32_t children[2] = { UINT32_MAX, UINT32_MAX };
 
-	uint32_t startIndex;
-	uint32_t endIndex;
+	uint32_t startIndex = 0;
+	uint32_t endIndex = 0;
 	uint32_t next = 0;
 
 	BVH(uint32_t startIndex, uint32_t endIndex, std::vector<Tri>& tris, std::vector<BVH>& globalBVH) :
@@ -34,7 +36,17 @@ struct BVH {
 		}
 	}
 
-	BVH() = default;
+	BVH()
+		: min(0.0f),
+		max(0.0f),
+		splitPoint(0.0f),
+		startIndex(0),
+		endIndex(0),
+		next(0) {
+
+		children[0] = UINT32_MAX;
+		children[1] = UINT32_MAX;
+	}
 
 	void calculateAABB(std::vector<Tri>& tris) {
 		min = glm::vec3(std::numeric_limits<float>::max());
@@ -60,7 +72,7 @@ struct BVH {
 
 		for (uint32_t i = startIndex; i <= clampedEnd; ++i) {
 			splitPoint += tris[i].center;
-		} 
+		}
 
 		splitPoint /= float(count);
 	}
@@ -123,4 +135,16 @@ struct BVH {
 			next++;
 		}
 	}
+};
+
+struct CompactBVH {
+	glm::vec3 min;
+	glm::vec3 max;
+
+	union {
+		uint32_t startIndex;
+		uint32_t missLink;
+	};
+
+	uint32_t triCount;
 };

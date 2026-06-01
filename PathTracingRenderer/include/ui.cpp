@@ -5,7 +5,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	glm::vec2 sliderSize = { 200.0f, 30.0f };
 	glm::vec2 buttonSize = { 150.0f, 30.0f };
 
-	ImGui::SetNextWindowSize(ImVec2(200.0f, params.screenSize.y), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(200.0f, float(params.screenSize.y)), ImGuiCond_Once);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Once);
 	ImGui::Begin("Settings", nullptr);
 
@@ -160,11 +160,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	glm::vec3 newSpecCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 newEmissionCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 newRefractionCol = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 newVolumeCol = { 0.0f, 0.0f, 0.0f };
 
 	float newIOR = 0.0f;
 	float newRoughness = 0.0f;
 	float newEmissionIntensity = 0.0f;
 	float newRefraction = 0.0f;
+	float newVolume = 0.0f;
+	float newDensity = 0.0f;
 	float newMetalness = 0.0f;
 
 	uint32_t selectedAmount = 0;
@@ -175,11 +178,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 			newSpecCol += data.models[i].specularCol;
 			newEmissionCol += data.models[i].emissionCol;
 			newRefractionCol += data.models[i].refractionCol;
+			newVolumeCol += data.models[i].volumeCol;
 
 			newIOR += data.models[i].IOR;
 			newRoughness += data.models[i].roughness;
 			newEmissionIntensity += data.models[i].emissionIntensity;
 			newRefraction += data.models[i].refraction;
+			newVolume += data.models[i].volume;
+			newDensity += data.models[i].density;
 			newMetalness += data.models[i].metalness;
 
 			selectedAmount++;
@@ -193,11 +199,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		newSpecCol *= inv;
 		newEmissionCol *= inv;
 		newRefractionCol *= inv;
+		newVolumeCol *= inv;
 
 		newIOR *= inv;
 		newRoughness *= inv;
 		newEmissionIntensity *= inv;
 		newRefraction *= inv;
+		newVolume *= inv;
+		newDensity *= inv;
 		newMetalness *= inv;
 	}
 
@@ -217,6 +226,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
+	if (ImGui::ColorEdit3("Volume Color", (float*)&newVolumeCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
+
 	if (sliderHelper("IOR", "Index of Refraction of selected models", sliderSize, newIOR, 0.0f, 200.0f, LogSlider)) {
 		params.shouldSample = false;
 	}
@@ -233,6 +246,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
+	if (sliderHelper("Volume", "Volume scattering of selected models", sliderSize, newVolume, 0.0f, 1.0f)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Density", "Volume density of selected models", sliderSize, newDensity, 0.0f, 100.0f)) {
+		params.shouldSample = false;
+	}
+
 	if (sliderHelper("Metalness", "Metalness of selected models", sliderSize, newMetalness, 0.0f, 1.0f)) {
 		params.shouldSample = false;
 	}
@@ -244,11 +265,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 			data.models[i].specularCol = newSpecCol;
 			data.models[i].emissionCol = newEmissionCol;
 			data.models[i].refractionCol = newRefractionCol;
+			data.models[i].volumeCol = newVolumeCol;
 
 			data.models[i].IOR = newIOR;
 			data.models[i].roughness = newRoughness;
 			data.models[i].emissionIntensity = newEmissionIntensity;
 			data.models[i].refraction = newRefraction;
+			data.models[i].volume = newVolume;
+			data.models[i].density = newDensity;
 			data.models[i].metalness = newMetalness;
 
 			data.models[i].updateTris(data);
@@ -488,7 +512,7 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, in
 	bool isSliderUsed = false;
 
 	ImGuiID sliderId = ImGui::GetID(label.c_str());
-	static std::unordered_map<ImGuiID, float> defaultValues;
+	static std::unordered_map<ImGuiID, int> defaultValues;
 
 	if (!isEnabled) {
 		ImGui::BeginDisabled();
@@ -519,7 +543,7 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, in
 		isSliderUsed = true;
 	}
 
-	static float prevValue = parameter;
+	static int prevValue = parameter;
 	static ImVec2 lastMousePos = ImGui::GetMousePos();
 
 	if (ImGui::IsItemActive()) {

@@ -6,6 +6,7 @@ struct Tri {
 	glm::vec3 specularCol;
 	glm::vec3 emissionCol;
 	glm::vec3 refractionCol;
+	glm::vec3 volumeCol;
 	glm::vec3 a; 
 	glm::vec3 b;
 	glm::vec3 c;
@@ -22,15 +23,17 @@ struct Tri {
 	float roughness;
 	float emissionIntensity;
 	float refraction;
+	float volume;
+	float density;
 	float metalness;
 	uint32_t idx;
 	bool doubleSided;
 	uint32_t modelIdx;
 
-	Tri(glm::vec3 albedo, glm::vec3 specularCol, glm::vec3 emissionCol, glm::vec3 refractionCol, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 aN, glm::vec3 bN, glm::vec3 cN,
-		float IOR, float roughness, float emissionIntensity, float refraction, float metalness, bool doubleSided)
-		: albedo(albedo), specularCol(specularCol), emissionCol(emissionCol), refractionCol(refractionCol), a(a), b(b), c(c), aN(aN), bN(bN), cN(cN), IOR(IOR),
-		roughness(roughness), emissionIntensity(emissionIntensity), refraction(refraction), metalness(metalness), doubleSided(doubleSided) {
+	Tri(glm::vec3 albedo, glm::vec3 specularCol, glm::vec3 emissionCol, glm::vec3 refractionCol, glm::vec3 volumeCol, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 aN, glm::vec3 bN, glm::vec3 cN,
+		float IOR, float roughness, float emissionIntensity, float refraction, float volume, float density, float metalness, bool doubleSided)
+		: albedo(albedo), specularCol(specularCol), emissionCol(emissionCol), refractionCol(refractionCol), volumeCol(volumeCol), a(a), b(b), c(c), aN(aN), bN(bN), cN(cN), IOR(IOR),
+		roughness(roughness), emissionIntensity(emissionIntensity), refraction(refraction), volume(volume), density(density), metalness(metalness), doubleSided(doubleSided) {
 		calculateNormal();
 		calculateAABB();
 		calculateCenter();

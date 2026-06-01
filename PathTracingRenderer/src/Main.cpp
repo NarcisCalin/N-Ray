@@ -289,7 +289,7 @@ int main() {
 
 	ObjImporter glass{ "models/sceneGlass.obj", data,
 		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 15.0f, 0.0f , true };
+		1.5f, 0.0f, 0.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
 
 	ObjImporter metal{ "models/sceneMetal.obj", data,
 		{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -298,6 +298,10 @@ int main() {
 	ObjImporter red{ "models/sceneRed.obj", data,
 		{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
 		1.5f, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true };
+
+	/*ObjImporter moon{ "models/moon.obj", data,
+		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
 
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
@@ -401,7 +405,9 @@ int main() {
 
 		cam3D.fovy = myCam.fovV;
 
-		pt.render(data, myCam, screen, params, render);
+		if (params.render) {
+			pt.render(data, myCam, screen, params, render);
+		}
 
 		BeginMode3D(cam3D);
 
@@ -411,18 +417,61 @@ int main() {
 			traceDebugRay();
 		}
 
-		/*for (size_t i = 0; i < data.tris.size(); i++) {
+		if (!params.render) {
+			rlBegin(RL_TRIANGLES);
 
-			Color finalcol = { unsigned char(data.tris[i].col.x * 255),
-				unsigned char(data.tris[i].col.y * 255),
-				unsigned char(data.tris[i].col.z * 255),
-				100 };
+			float minDotDir = 0.0f;
 
-			DrawTriangle3D({ data.tris[i].a.x,data.tris[i].a.y,data.tris[i].a.z },
-				{ data.tris[i].b.x,data.tris[i].b.y,data.tris[i].b.z },
-				{ data.tris[i].c.x,data.tris[i].c.y,data.tris[i].c.z },
-				finalcol);
-		}*/
+			glm::vec3 camPos = myCam.camPos;
+
+			auto fastClamp01 = [](float v) {
+				return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v);
+				};
+
+			for (size_t i = 0; i < data.tris.size(); i++) {
+
+				Tri& tri = data.tris[i];
+
+				glm::vec3 lightDir = glm::normalize(tri.center - camPos);
+
+				for (int j = 0; j < 3; j++) {
+
+					glm::vec3 normal;
+					glm::vec3 pos;
+
+					if (j == 0) {
+						normal = tri.aN;
+						pos = tri.a;
+					}
+					else if (j == 1) {
+						normal = tri.bN;
+						pos = tri.b;
+					}
+					else {
+						normal = tri.cN;
+						pos = tri.c;
+					}
+
+					float light = fabs(glm::dot(lightDir, normal));
+
+					float intensity = (light < 0.9f) ? (light * 0.9f) : (light * light);
+
+					glm::vec3 col = tri.albedo * intensity;
+
+					Color color = {
+						(unsigned char)(fastClamp01(col.x) * 255),
+						(unsigned char)(fastClamp01(col.y) * 255),
+						(unsigned char)(fastClamp01(col.z) * 255),
+						255
+					};
+
+					rlColor4ub(color.r, color.g, color.b, color.a);
+					rlVertex3f(pos.x, pos.y, pos.z);
+				}
+			}
+
+			rlEnd();
+		}
 
 		/*for (size_t i = 0; i < globalBVH.size(); i++) {
 

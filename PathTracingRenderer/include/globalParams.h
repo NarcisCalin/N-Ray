@@ -50,4 +50,5 @@ struct Params {
 	bool isMouseHoveringUI = false;
 	bool enableDebugRay = false;
 	bool enableSelection = true;
+	bool render = true;
 };

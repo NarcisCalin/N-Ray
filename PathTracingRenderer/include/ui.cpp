@@ -9,6 +9,34 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Once);
 	ImGui::Begin("Settings", nullptr);
 
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	ImGui::Text("Render Settings");
+
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	if (buttonHelper("Render", "Renders scene with path tracing", buttonSize, params.render)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Bounces Amount", "Amount of times a ray can bounce", sliderSize, params.maxBounces, 0, 50)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Max Samples", "Max amount of samples to render", sliderSize, params.maxSamples, 1, 50000)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Rays Per Pixel", "Amount of rays each pixel traces per sample", sliderSize, params.raysPerPixel, 1, 8)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Resolution", "Sets image resolution size", sliderSize, params.res, 16, 1024)) {
+		params.shouldSample = false;
+	}
+
 	ImGui::Spacing();
 	ImGui::Separator();
 
@@ -70,30 +98,6 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::Separator();
 
 	if (buttonHelper("Enable Sky", "Enables sky", buttonSize, params.enableSky)) {
-		params.shouldSample = false;
-	}
-
-	ImGui::Separator();
-	ImGui::Spacing();
-
-	ImGui::Text("Render Settings");
-
-	ImGui::Separator();
-	ImGui::Spacing();
-
-	if (sliderHelper("Bounces Amount", "Amount of times a ray can bounce", sliderSize, params.maxBounces, 0, 50)) {
-		params.shouldSample = false;
-	}
-
-	if (sliderHelper("Max Samples", "Max amount of samples to render", sliderSize, params.maxSamples, 1, 50000)) {
-		params.shouldSample = false;
-	}
-
-	if (sliderHelper("Rays Per Pixel", "Amount of rays each pixel traces per sample", sliderSize, params.raysPerPixel, 1, 8)) {
-		params.shouldSample = false;
-	}
-
-	if (sliderHelper("Resolution", "Sets image resolution size", sliderSize, params.res, 16, 1024)) {
 		params.shouldSample = false;
 	}
 

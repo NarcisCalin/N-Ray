@@ -415,16 +415,6 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, fl
 		isSliderUsed = true;
 	}
 
-	static float prevValue = parameter;
-	static ImVec2 lastMousePos = ImGui::GetMousePos();
-
-	if (ImGui::IsItemActive()) {
-		ImVec2 currentMousePos = ImGui::GetMousePos();
-		float mouseDelta = abs(currentMousePos.x - lastMousePos.x) + abs(currentMousePos.y - lastMousePos.y);
-
-		prevValue = parameter;
-	}
-
 	bool isHovered = ImGui::IsItemHovered();
 
 	if (isHovered) {
@@ -479,16 +469,6 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, fl
 
 	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.3f", ImGuiSliderFlags_Logarithmic)) {
 		isSliderUsed = true;
-	}
-
-	static float prevValue = parameter;
-	static ImVec2 lastMousePos = ImGui::GetMousePos();
-
-	if (ImGui::IsItemActive()) {
-		ImVec2 currentMousePos = ImGui::GetMousePos();
-		float mouseDelta = abs(currentMousePos.x - lastMousePos.x) + abs(currentMousePos.y - lastMousePos.y);
-
-		prevValue = parameter;
 	}
 
 	bool isHovered = ImGui::IsItemHovered();
@@ -547,16 +527,6 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, in
 		isSliderUsed = true;
 	}
 
-	static int prevValue = parameter;
-	static ImVec2 lastMousePos = ImGui::GetMousePos();
-
-	if (ImGui::IsItemActive()) {
-		ImVec2 currentMousePos = ImGui::GetMousePos();
-		float mouseDelta = abs(currentMousePos.x - lastMousePos.x) + abs(currentMousePos.y - lastMousePos.y);
-
-		prevValue = parameter;
-	}
-
 	bool isHovered = ImGui::IsItemHovered();
 
 	if (isHovered) {
@@ -578,7 +548,6 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, in
 
 bool UI::buttonHelper(std::string label, std::string tooltip, glm::vec2 size, bool& parameter, bool canDeactivateSelf, bool isEnabled) {
 
-	ImGuiID buttonId = ImGui::GetID(label.c_str());
 	static std::unordered_map<ImGuiID, bool> hoverStates;
 
 	if (!isEnabled) {

@@ -10,6 +10,7 @@
 #include <rlgl.h>
 #include <imgui.h>
 #include <rlImGui.h>
+#include <immintrin.h>
 
 #define RAYGUI_IMPLEMENTATION
 
@@ -146,13 +147,13 @@ struct AreaLight {
 	}
 };
 
-void createLights() {
-
-	float lightHeight = 215.0f;
-
-	AreaLight a{ {-57.0f, 0.0f, 215.0f}, { 1.0f, 1.0f, 1.0f }, 5.0f, 50.0f };
-	AreaLight b{ {57.0f, 0.0f, 215.0f}, { 1.0f, 1.0f, 1.0f }, 5.0f, 50.0f };
-}
+//void createLights() {
+//
+//	float lightHeight = 215.0f;
+//
+//	AreaLight a{ {-57.0f, 0.0f, 215.0f}, { 1.0f, 1.0f, 1.0f }, 5.0f, 50.0f };
+//	AreaLight b{ {57.0f, 0.0f, 215.0f}, { 1.0f, 1.0f, 1.0f }, 5.0f, 50.0f };
+//}
 
 void sortByEmission() {
 
@@ -207,8 +208,9 @@ void traceDebugRay() {
 	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI && !myCam.clickDof) {
 
 		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+		PathRayState mRayState = mRayGen.mouseRayState();
 
-		debugRays = pt.rayLogic(mRay, data.tris, params, true);
+		debugRays = pt.rayLogic(mRay, mRayState, data.tris, params, true);
 	}
 
 	for (size_t i = 0; i < debugRays.size(); i++) {
@@ -241,37 +243,39 @@ void traceDebugRay() {
 
 void setDofDist() {
 	PathRay dofRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+	PathRayState dofRayState = mRayGen.mouseRayState();
 
 	float closestT = FLT_MAX;
-	dofRay.hit = false;
-	dofRay.triIdx = UINT32_MAX;
+	dofRayState.hit = false;
+	dofRayState.triIdx = UINT32_MAX;
 
-	pt.traverseFlatBVH(dofRay, closestT, data.tris, globalCompactBVH);
+	pt.traverseFlatBVH(dofRay, dofRayState, closestT, data.tris, globalCompactBVH);
 
-	if (!dofRay.hit) {
+	if (!dofRayState.hit) {
 		myCam.focusDist = closestT;
 	}
 	else {
-		myCam.focusDist = glm::distance(myCam.camPos, dofRay.hitPos);
+		myCam.focusDist = glm::distance(myCam.camPos, dofRayState.hitPos);
 	}
 }
 
 void selectModel() {
 	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
 		PathRay selecRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+		PathRayState selecRayState = mRayGen.mouseRayState();
 
 		float closestT = FLT_MAX;
-		selecRay.hit = false;
-		selecRay.triIdx = UINT32_MAX;
+		selecRayState.hit = false;
+		selecRayState.triIdx = UINT32_MAX;
 
-		pt.traverseFlatBVH(selecRay, closestT, data.tris, globalCompactBVH);
+		pt.traverseFlatBVH(selecRay, selecRayState, closestT, data.tris, globalCompactBVH);
 
 		for (size_t i = 0; i < data.models.size(); i++) {
 			data.models[i].selected = false;
 		}
 
-		if (selecRay.hit) {
-			data.models[data.tris[selecRay.triIdx].modelIdx].selected = true;;
+		if (selecRayState.hit) {
+			data.models[data.tris[selecRayState.triIdx].modelIdx].selected = true;;
 		}
 	}
 }
@@ -312,6 +316,8 @@ int main() {
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
 	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
+	data.rays.resize(screen.resX * screen.resY);
+	data.rayStates.resize(screen.resX * screen.resY);
 
 	std::cout << "Build BVH Tree..." << '\n';
 	createFlatBVH();
@@ -382,6 +388,9 @@ int main() {
 			render = LoadTextureFromImage(ptData);
 
 			params.shouldSample = false;
+
+			data.rays.resize(screen.resX * screen.resY);
+			data.rayStates.resize(screen.resX * screen.resY);
 		}
 
 		if (params.enableSampling && !params.isMouseHoveringUI) {
@@ -419,8 +428,6 @@ int main() {
 
 		if (!params.render) {
 			rlBegin(RL_TRIANGLES);
-
-			float minDotDir = 0.0f;
 
 			glm::vec3 camPos = myCam.camPos;
 

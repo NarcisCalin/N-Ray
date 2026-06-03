@@ -34,10 +34,18 @@ struct MouseRay {
 		mRay.src = src;
 		mRay.dir = dir;
 		mRay.invDir = 1.0f / dir;
-		mRay.active = true;
-		mRay.col = glm::vec3(0.0f);
-		mRay.throughput = glm::vec3(1.0f);
 
 		return mRay;
+	}
+
+	PathRayState mouseRayState() {
+
+		PathRayState mRayState;
+
+		mRayState.active = true;
+		mRayState.col = glm::vec3(0.0f);
+		mRayState.throughput = glm::vec3(1.0f);
+
+		return mRayState;
 	}
 };

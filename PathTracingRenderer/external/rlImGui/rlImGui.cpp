@@ -669,7 +669,6 @@ bool ImGui_ImplRaylib_Init(void)
 
 void ImGui_ImplRaylib_Shutdown()
 {
-    ImGuiIO& io =ImGui::GetIO();
 
     for (auto& texture : ImGui::GetPlatformIO().Textures)
     {

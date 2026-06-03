@@ -6,14 +6,18 @@
 #include <screenStartup.h>
 #include <iostream>
 
+
 struct PathRay {
 	glm::vec3 src;
 	glm::vec3 dir;
 	glm::vec3 invDir;
+};
+
+struct PathRayState {
 	glm::vec3 hitPos;
-	glm::vec3 col = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 throughput = { 1.0f, 1.0f, 1.0f };
-	float length = FLT_MAX;
+	glm::vec3 col;
+	glm::vec3 throughput;
+	float length;
 	uint32_t triIdx;
 	bool hit = false;
 	bool active = true;
@@ -37,15 +41,15 @@ struct PathTracer {
 
 	bool rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT);
 
-	void diffuseLighting(PathRay& ray, glm::vec3& normal, std::vector<Tri>& tris);
+	void diffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, std::vector<Tri>& tris);
 
 	const float airIOR = 1.0f;
 
 	glm::vec3 sampleGGX(const glm::vec3& normal, float roughness, float r1, float r2);
 
-	bool specularLighting(PathRay& ray, glm::vec3& normal, std::vector<Tri>& tris);
+	bool specularLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, std::vector<Tri>& tris);
 
-	void refractionLighting(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris);
+	void refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris);
 
 	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
 		const BVH& buildNode = buildNodes[buildNodeIdx];
@@ -76,15 +80,15 @@ struct PathTracer {
 		}
 	}
 
-	void traverseFlatBVH(PathRay& ray, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
+	void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
 
 	void directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params);
 
-	glm::vec3 InterpolateNormal(PathRay& ray, std::vector<Tri>& tris) {
+	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris) {
 
-		glm::vec3 e0 = tris[ray.triIdx].b - tris[ray.triIdx].a;
-		glm::vec3 e1 = tris[ray.triIdx].c - tris[ray.triIdx].a;
-		glm::vec3 d = ray.hitPos - tris[ray.triIdx].a;
+		glm::vec3 e0 = tris[rayState.triIdx].b - tris[rayState.triIdx].a;
+		glm::vec3 e1 = tris[rayState.triIdx].c - tris[rayState.triIdx].a;
+		glm::vec3 d = rayState.hitPos - tris[rayState.triIdx].a;
 
 		float d00 = glm::dot(e0, e0);
 		float d01 = glm::dot(e0, e1);
@@ -99,9 +103,9 @@ struct PathTracer {
 		float u = 1.0f - v - w;
 
 		glm::vec3 interpolatedNormal =
-			u * tris[ray.triIdx].aN +
-			v * tris[ray.triIdx].bN +
-			w * tris[ray.triIdx].cN;
+			u * tris[rayState.triIdx].aN +
+			v * tris[rayState.triIdx].bN +
+			w * tris[rayState.triIdx].cN;
 
 		return glm::normalize(interpolatedNormal);
 	}
@@ -110,9 +114,9 @@ struct PathTracer {
 
 	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
 
-	std::vector<DebugRay> rayLogic(PathRay& ray, std::vector<Tri>& tris, Params& params, bool debug = false);
+	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, bool debug = false);
 
-	void rayGeneration(std::vector<PathRay>& rays, PTCam& myCam, Screen& screen, Params& params);
+	void rayGeneration(std::vector<PathRay>& rays, std::vector<PathRayState>& raysStates, PTCam& myCam, Screen& screen, Params& params);
 
 	glm::vec3 contrastSCurve(glm::vec3 x, float c) {
 
@@ -145,9 +149,12 @@ struct PathTracer {
 
 			colorManagement(params.contrast, col);
 
-			Color finalCol = { unsigned char(col.x * 255),
-				unsigned char(col.y * 255),
-				unsigned char(col.z * 255), 255 };
+			Color finalCol = {
+	static_cast<unsigned char>(col.x * 255),
+	static_cast<unsigned char>(col.y * 255),
+	static_cast<unsigned char>(col.z * 255),
+	255
+			};
 
 			data.frameBuffer[i] = finalCol;
 		}

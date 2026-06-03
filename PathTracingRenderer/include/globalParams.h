@@ -6,12 +6,14 @@
 
 
 struct PathRay;
+struct PathRayState;
 struct PTModel;
 
 struct Data {
 	std::vector<Tri> tris;
 	std::vector<Tri> emTris;
 	std::vector<PathRay> rays;
+	std::vector<PathRayState> rayStates;
 	std::vector<Color> frameBuffer;
 	std::vector<glm::vec3> accumBuffer;
 	std::vector<PTModel> models;

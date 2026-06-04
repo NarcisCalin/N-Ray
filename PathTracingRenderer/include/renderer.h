@@ -51,70 +51,19 @@ struct PathTracer {
 
 	void refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris);
 
-	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
-		const BVH& buildNode = buildNodes[buildNodeIdx];
-
-		CompactBVH compactNode;
-		compactNode.min = buildNode.min;
-		compactNode.max = buildNode.max;
-
-		uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
-
-		flatNodes.push_back(compactNode);
-
-		if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
-
-			uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
-
-			flatNodes[myFlatIndex].triCount = count;
-			flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
-
-		}
-		else {
-			flatNodes[myFlatIndex].triCount = 0;
-
-			flattenBVH(buildNode.children[0], buildNodes, flatNodes);
-			flattenBVH(buildNode.children[1], buildNodes, flatNodes);
-
-			flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
-		}
-	}
+	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes);
 
 	void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
 
 	void directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params);
 
-	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris) {
-
-		glm::vec3 e0 = tris[rayState.triIdx].b - tris[rayState.triIdx].a;
-		glm::vec3 e1 = tris[rayState.triIdx].c - tris[rayState.triIdx].a;
-		glm::vec3 d = rayState.hitPos - tris[rayState.triIdx].a;
-
-		float d00 = glm::dot(e0, e0);
-		float d01 = glm::dot(e0, e1);
-		float d11 = glm::dot(e1, e1);
-		float d20 = glm::dot(d, e0);
-		float d21 = glm::dot(d, e1);
-
-		float denom = d00 * d11 - d01 * d01;
-
-		float v = (d11 * d20 - d01 * d21) / denom;
-		float w = (d00 * d21 - d01 * d20) / denom;
-		float u = 1.0f - v - w;
-
-		glm::vec3 interpolatedNormal =
-			u * tris[rayState.triIdx].aN +
-			v * tris[rayState.triIdx].bN +
-			w * tris[rayState.triIdx].cN;
-
-		return glm::normalize(interpolatedNormal);
-	}
+	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris);
 
 	std::vector<DebugRay> debugRays;
 
 	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
 
-	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, bool debug = false);
+	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, Image& hdri, bool debug = false);
 
 	void rayGeneration(std::vector<PathRay>& rays, std::vector<PathRayState>& raysStates, PTCam& myCam, Screen& screen, Params& params);
 
@@ -134,41 +83,7 @@ struct PathTracer {
 		col = glm::pow(col, glm::vec3(1.0f / 2.2f));
 	}
 
-	void drawScreen(Screen& screen, Params& params, Data& data, int& width, Texture2D& render) {
+	void drawScreen(Screen& screen, Params& params, Data& data, int& width, Texture2D& render);
 
-		float invSamples = params.currentSample > 0 ? 1.0f / (float(params.currentSample) * float(params.raysPerPixel)) : 1.0f;
-
-#pragma omp parallel for
-		for (int i = 0; i < data.frameBuffer.size(); i++) {
-
-			glm::vec3 col = data.accumBuffer[i] * invSamples;
-
-			col *= params.exposure;
-
-			col = glm::min(col, 1.0f);
-
-			colorManagement(params.contrast, col);
-
-			Color finalCol = {
-	static_cast<unsigned char>(col.x * 255),
-	static_cast<unsigned char>(col.y * 255),
-	static_cast<unsigned char>(col.z * 255),
-	255
-			};
-
-			data.frameBuffer[i] = finalCol;
-		}
-
-		UpdateTexture(render, data.frameBuffer.data());
-		DrawTexturePro(
-			render,
-			{ 0, 0, (float)screen.resX, (float)screen.resY },
-			{ 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() },
-			{ 0, 0 },
-			0.0f,
-			WHITE
-		);
-	}
-
-	void render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render);
+	void render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render, Image& hdri);
 };

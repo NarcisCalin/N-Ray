@@ -158,30 +158,75 @@ bool PathTracer::specularLighting(PathRay& ray, PathRayState& rayState, glm::vec
 void PathTracer::refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris) {
 	float n1 = airIOR;
 	float n2 = tris[rayState.triIdx].IOR;
+
 	float cosi = glm::dot(ray.dir, normal);
 
-	if (cosi > 0.0f) {
+	bool isExiting = cosi > 0.0f;
+
+	if (isExiting) {
 		std::swap(n1, n2);
+
 		normal = -normal;
-		cosi = -cosi;
-		rayState.isRefraction = false;
-	}
-	else {
-		cosi = -cosi;
-		ray.src = rayState.hitPos - normal * 0.001f;
-		rayState.isRefraction = true;
-		rayState.throughput *= tris[rayState.triIdx].refractionCol;
+
+		float dist = glm::distance(rayState.hitPos, ray.src);
+
+		float absorptionFactor = dist * tris[rayState.triIdx].absorption;
+		glm::vec3 absorptionScale = glm::exp(-tris[rayState.triIdx].absorptionCol * absorptionFactor);
+
+		rayState.throughput *= absorptionScale;
 	}
 
 	float eta = n1 / n2;
+
 	float k = 1.0f - eta * eta * (1.0f - cosi * cosi);
 
 	if (k < 0.0f) {
 		ray.dir = glm::reflect(ray.dir, normal);
+		ray.src = rayState.hitPos + normal * 0.001f;
+		rayState.isRefraction = true;
 		return;
 	}
 
 	ray.dir = glm::normalize(glm::refract(ray.dir, normal, eta));
+
+	if (isExiting) {
+		ray.src = rayState.hitPos - normal * 0.001f;
+		rayState.isRefraction = false;
+	}
+	else {
+		ray.src = rayState.hitPos - normal * 0.001f;
+		rayState.isRefraction = true;
+	}
+}
+
+void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
+
+	const BVH& buildNode = buildNodes[buildNodeIdx];
+
+	CompactBVH compactNode;
+	compactNode.min = buildNode.min;
+	compactNode.max = buildNode.max;
+
+	uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
+
+	flatNodes.push_back(compactNode);
+
+	if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
+
+		uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
+
+		flatNodes[myFlatIndex].triCount = count;
+		flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
+
+	}
+	else {
+		flatNodes[myFlatIndex].triCount = 0;
+
+		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
+		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
+
+		flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
+	}
 }
 
 void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
@@ -229,6 +274,32 @@ void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& cl
 			idx++;
 		}
 	}
+}
+
+glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris) {
+
+	glm::vec3 e0 = tris[rayState.triIdx].b - tris[rayState.triIdx].a;
+	glm::vec3 e1 = tris[rayState.triIdx].c - tris[rayState.triIdx].a;
+	glm::vec3 d = rayState.hitPos - tris[rayState.triIdx].a;
+
+	float d00 = glm::dot(e0, e0);
+	float d01 = glm::dot(e0, e1);
+	float d11 = glm::dot(e1, e1);
+	float d20 = glm::dot(d, e0);
+	float d21 = glm::dot(d, e1);
+
+	float denom = d00 * d11 - d01 * d01;
+
+	float v = (d11 * d20 - d01 * d21) / denom;
+	float w = (d00 * d21 - d01 * d20) / denom;
+	float u = 1.0f - v - w;
+
+	glm::vec3 interpolatedNormal =
+		u * tris[rayState.triIdx].aN +
+		v * tris[rayState.triIdx].bN +
+		w * tris[rayState.triIdx].cN;
+
+	return glm::normalize(interpolatedNormal);
 }
 
 //void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params) {
@@ -311,6 +382,37 @@ glm::vec3 sky(PathRay& ray, Params& params) {
 	return skyCol;
 }
 
+glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri) {
+
+	float phi = glm::atan(ray.dir.y, ray.dir.x);
+
+	float theta = glm::asin(ray.dir.z);
+
+	float u = (phi + PI) / (2.0f * PI);
+	float v = 1.0f - (theta + PI * 0.5f) / PI;
+
+	int x = (int)(u * hdri.width);
+	int y = (int)(v * hdri.height);
+
+	x = glm::clamp(x, 0, hdri.width - 1);
+	y = glm::clamp(y, 0, hdri.height - 1);
+
+	x = glm::clamp(x, 0, hdri.width - 1);
+	y = glm::clamp(y, 0, hdri.height - 1);
+
+	int pIdx = (y * hdri.width + x) * 3;
+
+	float* data = (float*)hdri.data;
+
+	glm::vec3 pCol = {
+		data[pIdx + 0],
+		data[pIdx + 1],
+		data[pIdx + 2]
+	};
+
+	return pCol * params.skyIntensity;
+}
+
 //void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow) {
 //
 //	PathRay sunRay;
@@ -388,7 +490,7 @@ glm::vec3 sky(PathRay& ray, Params& params) {
 //		//}
 //}
 
-std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, bool debug) {
+std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, Image& hdri, bool debug) {
 
 	debugRays.clear();
 
@@ -449,7 +551,9 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 			glm::vec3 orientedNormal = isInside ? -interpolatedNormal : interpolatedNormal;
 
-			ray.src = rayState.hitPos + tris[rayState.triIdx].normal * 0.001f;
+			if (!rayState.isRefraction) {
+				ray.src = rayState.hitPos + tris[rayState.triIdx].normal * 0.001f;
+			}
 
 			float emissionVal = (tris[rayState.triIdx].emissionCol.x + tris[rayState.triIdx].emissionCol.y + tris[rayState.triIdx].emissionCol.z) / 3.0f;
 			bool isEmissive = tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
@@ -474,7 +578,9 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 				bool isSpecular = false;
 
-				isSpecular = specularLighting(ray, rayState, interpolatedNormal, tris);
+				if (!rayState.isRefraction) {
+					isSpecular = specularLighting(ray, rayState, interpolatedNormal, tris);
+				}
 
 				if (!isSpecular) {
 					if (dist(rng) < tris[rayState.triIdx].refraction) {
@@ -495,7 +601,8 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 		if (!rayState.hit && !rayState.isVolume) {
 			rayState.active = false;
 
-			rayState.col += rayState.throughput * sky(ray, params);
+			//rayState.col += rayState.throughput * sky(ray, params);
+			rayState.col += rayState.throughput * hdriLogic(ray, params, hdri);
 
 			break;
 		}
@@ -556,7 +663,43 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 	}
 }
 
-void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render) {
+void PathTracer::drawScreen(Screen& screen, Params& params, Data& data, int& width, Texture2D& render) {
+
+	float invSamples = params.currentSample > 0 ? 1.0f / (float(params.currentSample) * float(params.raysPerPixel)) : 1.0f;
+
+#pragma omp parallel for
+	for (int i = 0; i < data.frameBuffer.size(); i++) {
+
+		glm::vec3 col = data.accumBuffer[i] * invSamples;
+
+		col *= params.exposure;
+
+		col = glm::min(col, 1.0f);
+
+		colorManagement(params.contrast, col);
+
+		Color finalCol = {
+static_cast<unsigned char>(col.x * 255),
+static_cast<unsigned char>(col.y * 255),
+static_cast<unsigned char>(col.z * 255),
+255
+		};
+
+		data.frameBuffer[i] = finalCol;
+	}
+
+	UpdateTexture(render, data.frameBuffer.data());
+	DrawTexturePro(
+		render,
+		{ 0, 0, (float)screen.resX, (float)screen.resY },
+		{ 0, 0, (float)GetScreenWidth(), (float)GetScreenHeight() },
+		{ 0, 0 },
+		0.0f,
+		WHITE
+	);
+}
+
+void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render, Image& hdri) {
 
 	if (params.shouldSample) {
 		if (params.currentSample < params.maxSamples) {
@@ -566,7 +709,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 #pragma omp parallel for
 				for (int i = 0; i < data.rays.size(); i++) {
-					rayLogic(data.rays[i], data.rayStates[i], data.tris, params);
+					rayLogic(data.rays[i], data.rayStates[i], data.tris, params, hdri);
 				}
 
 				for (size_t i = 0; i < data.frameBuffer.size(); i++) {
@@ -592,7 +735,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 #pragma omp parallel for
 			for (int i = 0; i < data.rays.size(); i++) {
-				rayLogic(data.rays[i], data.rayStates[i], data.tris, params);
+				rayLogic(data.rays[i], data.rayStates[i], data.tris, params, hdri);
 			}
 
 			for (size_t i = 0; i < data.frameBuffer.size(); i++) {

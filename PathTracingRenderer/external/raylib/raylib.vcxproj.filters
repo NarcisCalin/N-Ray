@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rcore.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rshapes.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rtext.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rtextures.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raudio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rmodels.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raylib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rcamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rlgl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raymath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\context.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\init.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\input.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\monitor.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\platform.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\vulkan.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\window.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\egl_context.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\osmesa_context.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_init.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_monitor.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_window.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_joystick.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_module.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_time.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_thread.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_init.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_joystick.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_monitor.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_window.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\wgl_context.obj">
+      <Filter>Object Libraries</Filter>
+    </Object>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{E95380B8-CF6C-31E5-8B11-9CE73CBE9708}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Object Libraries">
+      <UniqueIdentifier>{06418D77-DCDF-369B-AB3A-6AF8A6AC8030}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{A7622B29-89D9-316D-A6EC-EABA5BE104D3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,337 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C773EC85-65DB-3780-B632-9ADA4909818E}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>raylib</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">raylib.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">raylib</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">raylib.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">raylib</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">raylib.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">raylib</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">raylib.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">raylib</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/external/glfw/include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/external/glfw/include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/external/glfw/include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/external/glfw/include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>
+      </ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PLATFORM_DESKTOP;GRAPHICS_API_OPENGL_33;_CRT_SECURE_NO_WARNINGS;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\external\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib -BF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build --check-stamp-file F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build/raylib/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-3.31\Modules\CMakePushCheckState.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.31\Templates\CPackConfig.cmake.in;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\CompileDefinitions.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\GlfwImport.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\InstallConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\JoinPaths.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryPathToLinkerFlags.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PackConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PopulateConfigVariablesLocally.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config-version.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\raylib.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib -BF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build --check-stamp-file F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build/raylib/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-3.31\Modules\CMakePushCheckState.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.31\Templates\CPackConfig.cmake.in;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\CompileDefinitions.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\GlfwImport.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\InstallConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\JoinPaths.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryPathToLinkerFlags.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PackConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PopulateConfigVariablesLocally.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config-version.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\raylib.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib -BF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build --check-stamp-file F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build/raylib/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-3.31\Modules\CMakePushCheckState.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.31\Templates\CPackConfig.cmake.in;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\CompileDefinitions.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\GlfwImport.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\InstallConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\JoinPaths.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryPathToLinkerFlags.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PackConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PopulateConfigVariablesLocally.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config-version.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\raylib.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib -BF:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build --check-stamp-file F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/build/raylib/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-3.31\Modules\CMakePushCheckState.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.31\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.31\Templates\CPackConfig.cmake.in;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\CompileDefinitions.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\GlfwImport.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\InstallConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\JoinPaths.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\LibraryPathToLinkerFlags.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PackConfigurations.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\PopulateConfigVariablesLocally.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config-version.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\cmake\raylib-config.cmake;F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\raylib.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rcore.c" />
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rshapes.c" />
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rtext.c" />
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rtextures.c" />
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raudio.c" />
+    <ClCompile Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rmodels.c" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\context.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\init.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\input.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\monitor.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\platform.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\vulkan.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\window.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\egl_context.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\osmesa_context.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_init.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_monitor.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_window.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\null_joystick.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_module.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_time.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_thread.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_init.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_joystick.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_monitor.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\win32_window.obj" />
+    <Object Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.dir\$(Configuration)\wgl_context.obj" />
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raylib.h" />
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rcamera.h" />
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\rlgl.h" />
+    <ClInclude Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\src\raymath.h" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\ZERO_CHECK.vcxproj">
+      <Project>{ED48951E-F89C-3EE4-B1D8-008749631D7C}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="F:\Coding\PathTracingRenderer\PathTracingRenderer\external\raylib\build\raylib\external\glfw\src\glfw.vcxproj">
+      <Project>{53ACE86B-2AF3-3991-B7B7-A7685E263FC9}</Project>
+      <Name>glfw</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

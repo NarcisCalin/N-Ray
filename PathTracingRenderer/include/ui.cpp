@@ -68,7 +68,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
-	if (sliderHelper("Sky Intensity", "Sets sky intensity", sliderSize, params.skyIntensity, 0.0f, 10.0f)) {
+	if (sliderHelper("Sky Intensity", "Sets sky intensity", sliderSize, params.skyIntensity, 0.0f, 10.0f, LogSlider)) {
 		params.shouldSample = false;
 	}
 
@@ -163,13 +163,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	glm::vec3 newAlbedo = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 newSpecCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 newEmissionCol = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 newRefractionCol = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 newAbsorptionCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 newVolumeCol = { 0.0f, 0.0f, 0.0f };
 
 	float newIOR = 0.0f;
 	float newRoughness = 0.0f;
 	float newEmissionIntensity = 0.0f;
 	float newRefraction = 0.0f;
+	float newAbsorption = 0.0f;
 	float newVolume = 0.0f;
 	float newDensity = 0.0f;
 	float newMetalness = 0.0f;
@@ -181,13 +182,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 			newAlbedo += data.models[i].albedo;
 			newSpecCol += data.models[i].specularCol;
 			newEmissionCol += data.models[i].emissionCol;
-			newRefractionCol += data.models[i].refractionCol;
+			newAbsorptionCol += data.models[i].absorptionCol;
 			newVolumeCol += data.models[i].volumeCol;
 
 			newIOR += data.models[i].IOR;
 			newRoughness += data.models[i].roughness;
 			newEmissionIntensity += data.models[i].emissionIntensity;
 			newRefraction += data.models[i].refraction;
+			newAbsorption += data.models[i].absorption;
 			newVolume += data.models[i].volume;
 			newDensity += data.models[i].density;
 			newMetalness += data.models[i].metalness;
@@ -202,13 +204,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		newAlbedo *= inv;
 		newSpecCol *= inv;
 		newEmissionCol *= inv;
-		newRefractionCol *= inv;
+		newAbsorptionCol *= inv;
 		newVolumeCol *= inv;
 
 		newIOR *= inv;
 		newRoughness *= inv;
 		newEmissionIntensity *= inv;
 		newRefraction *= inv;
+		newAbsorption *= inv;
 		newVolume *= inv;
 		newDensity *= inv;
 		newMetalness *= inv;
@@ -226,7 +229,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
-	if (ImGui::ColorEdit3("Refraction Color", (float*)&newRefractionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+	if (ImGui::ColorEdit3("Absorption Color", (float*)&newAbsorptionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 		params.shouldSample = false;
 	}
 
@@ -250,6 +253,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
+	if (sliderHelper("Absorption", "How much light a material absorbs when refracted", sliderSize, newAbsorption, 0.0f, 10.0f)) {
+		params.shouldSample = false;
+	}
+
 	if (sliderHelper("Volume", "Volume scattering of selected models", sliderSize, newVolume, 0.0f, 1.0f)) {
 		params.shouldSample = false;
 	}
@@ -268,13 +275,14 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 			data.models[i].albedo = newAlbedo;
 			data.models[i].specularCol = newSpecCol;
 			data.models[i].emissionCol = newEmissionCol;
-			data.models[i].refractionCol = newRefractionCol;
+			data.models[i].absorptionCol = newAbsorptionCol;
 			data.models[i].volumeCol = newVolumeCol;
 
 			data.models[i].IOR = newIOR;
 			data.models[i].roughness = newRoughness;
 			data.models[i].emissionIntensity = newEmissionIntensity;
 			data.models[i].refraction = newRefraction;
+			data.models[i].absorption = newAbsorption;
 			data.models[i].volume = newVolume;
 			data.models[i].density = newDensity;
 			data.models[i].metalness = newMetalness;

@@ -1,0 +1,22 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-3.31/Modules/CMakePushCheckState.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/CPack.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/CPackComponent.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/FindOpenGL.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-3.31/Modules/GNUInstallDirs.cmake
+C:/Program Files/CMake/share/cmake-3.31/Templates/CPackConfig.cmake.in
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/CompileDefinitions.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/GlfwImport.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/InstallConfigurations.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/JoinPaths.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/LibraryConfigurations.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/LibraryPathToLinkerFlags.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/PackConfigurations.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/PopulateConfigVariablesLocally.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/raylib-config-version.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/cmake/raylib-config.cmake
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/raylib.pc.in
+F:/Coding/PathTracingRenderer/PathTracingRenderer/external/raylib/src/CMakeLists.txt

@@ -110,6 +110,7 @@ struct AreaLight {
 			0.0f,
 			0.0f,
 			0.0f,
+			0.0f,
 			false
 		},
 
@@ -131,6 +132,7 @@ struct AreaLight {
 			1.0f,
 			1.0f,
 			emissionStrength,
+			0.0f,
 			0.0f,
 			0.0f,
 			0.0f,
@@ -204,13 +206,13 @@ std::vector<DebugRay> debugRays;
 
 float debugRaySpeed = 50.0f;
 
-void traceDebugRay() {
+void traceDebugRay(Image& hdri) {
 	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI && !myCam.clickDof) {
 
 		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
 		PathRayState mRayState = mRayGen.mouseRayState();
 
-		debugRays = pt.rayLogic(mRay, mRayState, data.tris, params, true);
+		debugRays = pt.rayLogic(mRay, mRayState, data.tris, params, hdri, true);
 	}
 
 	for (size_t i = 0; i < debugRays.size(); i++) {
@@ -284,24 +286,29 @@ int main() {
 
 	SetConfigFlags(FLAG_WINDOW_ALWAYS_RUN);
 	SetTraceLogLevel(LOG_NONE);
+
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
 	ObjImporter scene{ "models/scene.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
 	ObjImporter glass{ "models/sceneGlass.obj", data,
 		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
+		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
 
 	ObjImporter metal{ "models/sceneMetal.obj", data,
 		{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, true };
+		1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, true };
 
 	ObjImporter red{ "models/sceneRed.obj", data,
 		{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 0.15f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, true };
+		1.5f, 0.15f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, true };
+
+	ObjImporter dragon{ "models/dragon.obj", data,
+		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.5f, 0.6f, 0.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -350,6 +357,9 @@ int main() {
 	};
 
 	Texture2D render = LoadTextureFromImage(ptData);
+
+	Image hdri = LoadImage("textures/HDRI.hdr");
+	ImageFormat(&hdri, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
 
 	rlImGuiSetup(true);
 
@@ -415,7 +425,7 @@ int main() {
 		cam3D.fovy = myCam.fovV;
 
 		if (params.render) {
-			pt.render(data, myCam, screen, params, render);
+			pt.render(data, myCam, screen, params, render, hdri);
 		}
 
 		BeginMode3D(cam3D);
@@ -423,7 +433,7 @@ int main() {
 		//rlDisableBackfaceCulling();
 
 		if (params.enableDebugRay) {
-			traceDebugRay();
+			traceDebugRay(hdri);
 		}
 
 		if (!params.render) {
@@ -537,6 +547,9 @@ int main() {
 			break;
 		}*/
 	}
+
+	UnloadTexture(render);
+	UnloadImage(hdri);
 
 	CloseWindow();
 }

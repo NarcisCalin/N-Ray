@@ -5,6 +5,7 @@
 #include <bvh.h>
 #include <screenStartup.h>
 #include <iostream>
+#include <rtcore.h>
 
 
 struct PathRay {
@@ -14,11 +15,11 @@ struct PathRay {
 };
 
 struct PathRayState {
-	glm::vec3 hitPos;
-	glm::vec3 col;
-	glm::vec3 throughput;
-	float length;
-	uint32_t triIdx;
+	glm::vec3 hitPos = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 col = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 throughput = { 1.0f, 1.0f, 1.0f };
+	float length = FLT_MAX;
+	uint32_t triIdx = UINT32_MAX;
 	bool hit = false;
 	bool active = true;
 	bool isRefraction = false;
@@ -53,17 +54,19 @@ struct PathTracer {
 
 	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes);
 
-	void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
+	void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
 
-	void directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params);
+	bool traceRay(const EmbreeBVH& bvh, const PathRay& ray, PathRayState& rayState, float& closestT);
+
+	void directLight(glm::vec3& sampleP, glm::vec3& sampleN, float& pdf, Data& data, Params& params);
 
 	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris);
 
 	std::vector<DebugRay> debugRays;
 
-	void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
+	//void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
 
-	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, Image& hdri, bool debug = false);
+	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, bool debug = false);
 
 	void rayGeneration(std::vector<PathRay>& rays, std::vector<PathRayState>& raysStates, PTCam& myCam, Screen& screen, Params& params);
 

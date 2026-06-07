@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <raylib.h>
 #include <tri.h>
+#include <map>
+#include <bvh.h>
 
 
 struct PathRay;
@@ -17,6 +19,10 @@ struct Data {
 	std::vector<Color> frameBuffer;
 	std::vector<glm::vec3> accumBuffer;
 	std::vector<PTModel> models;
+
+	std::vector<uint32_t> triMap;
+
+	EmbreeBVH embreeBVH;
 };
  
 struct Params { 
@@ -31,7 +37,8 @@ struct Params {
 	int raysPerPixel = 1;
 	int currentSample = 0;
 	bool enableSky = true;
-	float skyIntensity = 0.75f;
+	bool enableHDRI = true;
+	float skyIntensity = 1.0f;
 	float blur = 1.0f;
 	float exposure = 1.0f;
 	float contrast = 0.8f;
@@ -41,6 +48,13 @@ struct Params {
 	glm::vec3 sunColor = { 1.0f, 1.0f, 0.95f };
 	float sunIntensity = 100.0f;
 	float sunAngle = 7.53f;
+
+	glm::vec3 skyTopOriginal = { 0.263f, 0.553f, 0.769f };
+	glm::vec3 skyBaseOriginal = { 0.89f, 0.824f, 0.698f };
+
+	glm::vec3 skyTop = skyTopOriginal;
+	glm::vec3 skyBase = skyBaseOriginal;
+
 	size_t emissiveAmount = 0;
 
 	float totalMs = 0.0f;

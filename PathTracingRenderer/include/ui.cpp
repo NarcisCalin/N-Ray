@@ -45,6 +45,24 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::Separator();
 	ImGui::Spacing();
 
+	ImGui::Spacing();
+	ImGui::Separator();
+
+	if (buttonHelper("Enable Sun", "Enables sun", buttonSize, params.enableSun)) {
+		params.shouldSample = false;
+	}
+
+	if (buttonHelper("Enable Sky", "Enables sky (hdri must be disabled)", buttonSize, params.enableSky, true, !params.enableHDRI)) {
+		params.shouldSample = false;
+	}
+
+	if (buttonHelper("Enable HDRI Map", "Enables HDRI map for lighting", buttonSize, params.enableHDRI)) {
+		params.shouldSample = false;
+	}
+
+	ImGui::Separator();
+	ImGui::Spacing();
+
 	if (sliderHelper("Sun Dir X", "Sets sun direction X", sliderSize, params.sunDir.x, 0.0f, 1.0f)) {
 		params.shouldSample = false;
 		params.sunDir = glm::normalize(params.sunDir);
@@ -84,20 +102,21 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
-	ImGui::Spacing();
-	ImGui::Separator();
-
-	if (buttonHelper("Enable Sun", "Enables sun", buttonSize, params.enableSun)) {
+	if (ImGui::ColorEdit3("Sky Top Color", (float*)&params.skyTop, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 		params.shouldSample = false;
 	}
 
-	ImGui::Separator();
-	ImGui::Spacing();
+	if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+		params.skyTop = params.skyTopOriginal;
+		params.shouldSample = false;
+	}
 
-	ImGui::Spacing();
-	ImGui::Separator();
+	if (ImGui::ColorEdit3("Sky Base Color", (float*)&params.skyBase, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+		params.shouldSample = false;
+	}
 
-	if (buttonHelper("Enable Sky", "Enables sky", buttonSize, params.enableSky)) {
+	if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+		params.skyBase = params.skyBaseOriginal;
 		params.shouldSample = false;
 	}
 
@@ -347,6 +366,8 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::Spacing();
 
 	ImGui::Text("Triangles: %d", (int)data.tris.size());
+
+	ImGui::Text("MAXID: %d", (int)globalTriId);
 
 	ImGui::Spacing();
 	ImGui::Separator();

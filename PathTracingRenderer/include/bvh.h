@@ -1,6 +1,101 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <tri.h>
+#include <rtcore.h>
+
+struct EmbreeBVH {
+
+	std::vector<glm::vec3> vertices;
+	std::vector<Tri>* tris = nullptr;
+	RTCDevice device = nullptr;
+	RTCScene scene = nullptr;
+
+	EmbreeBVH() {
+		device = rtcNewDevice(nullptr);
+		scene = rtcNewScene(device);
+	}
+
+	~EmbreeBVH() {
+		if (scene)  rtcReleaseScene(scene);
+		if (device) rtcReleaseDevice(device);
+	}
+
+	EmbreeBVH(const EmbreeBVH&) = delete;
+	EmbreeBVH& operator=(const EmbreeBVH&) = delete;
+
+	EmbreeBVH(EmbreeBVH&& other) noexcept
+		: vertices(std::move(other.vertices)),
+		tris(other.tris),
+		device(other.device),
+		scene(other.scene) {
+
+		other.device = nullptr;
+		other.scene = nullptr;
+		other.tris = nullptr;
+	}
+
+	EmbreeBVH& operator=(EmbreeBVH&& other) noexcept {
+		if (this != &other) {
+			if (scene)  rtcReleaseScene(scene);
+			if (device) rtcReleaseDevice(device);
+			vertices = std::move(other.vertices);
+			tris = other.tris;
+			device = other.device;
+			scene = other.scene;
+			other.device = nullptr;
+			other.scene = nullptr;
+			other.tris = nullptr;
+		}
+		return *this;
+	}
+
+	void build(std::vector<Tri>& inputTris) {
+		tris = &inputTris;
+
+		vertices.clear();
+		vertices.reserve(inputTris.size() * 3);
+		for (const Tri& t : inputTris) {
+			vertices.push_back(t.a);
+			vertices.push_back(t.b);
+			vertices.push_back(t.c);
+		}
+
+		const size_t triCount = inputTris.size();
+		const size_t vertexCount = vertices.size();
+
+		RTCGeometry geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+		glm::vec3* v = (glm::vec3*)rtcSetNewGeometryBuffer(
+			geom,
+			RTC_BUFFER_TYPE_VERTEX, 0,
+			RTC_FORMAT_FLOAT3,
+			sizeof(glm::vec3),
+			vertexCount
+		);
+
+		for (size_t i = 0; i < vertexCount; i++)
+			v[i] = vertices[i];
+
+		uint32_t* idx = (uint32_t*)rtcSetNewGeometryBuffer(
+			geom,
+			RTC_BUFFER_TYPE_INDEX, 0,
+			RTC_FORMAT_UINT3,
+			3 * sizeof(uint32_t),
+			triCount
+		);
+
+		for (size_t i = 0; i < triCount; i++) {
+			idx[i * 3 + 0] = (uint32_t)(i * 3 + 0);
+			idx[i * 3 + 1] = (uint32_t)(i * 3 + 1);
+			idx[i * 3 + 2] = (uint32_t)(i * 3 + 2);
+		}
+
+		rtcCommitGeometry(geom);
+		rtcAttachGeometry(scene, geom);
+		rtcReleaseGeometry(geom);
+		rtcCommitScene(scene);
+	}
+};
 
 struct BVH;
 struct CompactBVH;
@@ -96,6 +191,10 @@ struct BVH {
 				}
 
 				std::swap(tris[i], tris[aIdx]);
+
+				tris[i].id = i;
+				tris[aIdx].id = aIdx;
+
 				aIdx++;
 			}
 		}

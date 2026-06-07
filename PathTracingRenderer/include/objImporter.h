@@ -4,6 +4,7 @@
 #include <sstream>
 #include <memory>
 #include <model.h>
+#include <globalIds.h>
 
 struct ObjImporter {
 
@@ -49,8 +50,7 @@ struct ObjImporter {
 					volume,
 					density,
 					metalness,
-					doubleSided,
-					uint32_t(data.models.size())
+					doubleSided
 			});
 
 		while (std::getline(file, line)) {
@@ -168,7 +168,8 @@ struct ObjImporter {
 						doubleSided
 						});
 
-					data.tris.back().modelIdx = uint32_t(data.models.size() - 1);
+					data.tris.back().modelId = globalModelId - 1;
+					data.models.back().tris.push_back(globalTriId - 1);
 				}
 			}
 		}

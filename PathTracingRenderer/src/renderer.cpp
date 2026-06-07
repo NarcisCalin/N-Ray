@@ -229,7 +229,7 @@ void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& build
 	}
 }
 
-void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, const std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
+void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
 
 	uint32_t idx = 0;
 	uint32_t nodeCount = static_cast<uint32_t>(flatBVH.size());
@@ -262,7 +262,7 @@ void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& cl
 						closestT = t;
 						rayState.hit = true;
 						rayState.hitPos = ray.src + ray.dir * t;
-						rayState.triIdx = tri.idx;
+						rayState.triIdx = tri.id;
 					}
 				}
 			}
@@ -274,6 +274,45 @@ void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& cl
 			idx++;
 		}
 	}
+}
+
+bool PathTracer::traceRay(const EmbreeBVH& bvh, const PathRay& ray, PathRayState& rayState, float& closestT) {
+
+	RTCRayHit rayhit;
+
+	rayhit.ray.org_x = ray.src.x;
+	rayhit.ray.org_y = ray.src.y;
+	rayhit.ray.org_z = ray.src.z;
+
+	rayhit.ray.dir_x = ray.dir.x;
+	rayhit.ray.dir_y = ray.dir.y;
+	rayhit.ray.dir_z = ray.dir.z;
+
+	rayhit.ray.tnear = 1e-4f;
+	rayhit.ray.tfar = closestT;
+	rayhit.ray.mask = -1;
+	rayhit.ray.flags = 0;
+	rayhit.ray.time = 0.0f;
+
+	rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+	rayhit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+	RTCIntersectArguments args;
+	rtcInitIntersectArguments(&args);
+	args.feature_mask = RTC_FEATURE_FLAG_TRIANGLE;
+
+	rtcIntersect1(bvh.scene, &rayhit, &args);
+
+	if (rayhit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+		return false;
+
+	closestT = rayhit.ray.tfar;
+	rayState.hit = true;
+	rayState.hitPos = ray.src + ray.dir * rayhit.ray.tfar;
+	rayState.triIdx = (*bvh.tris)[rayhit.hit.primID].id;
+
+	return true;
 }
 
 glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris) {
@@ -302,7 +341,7 @@ glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>
 	return glm::normalize(interpolatedNormal);
 }
 
-//void PathTracer::directLight(PathRay& ray, glm::vec3 normal, std::vector<Tri>& tris, Params& params) {
+//void PathTracer::directLight(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris, Params& params) {
 //
 //	static thread_local std::mt19937 rng(std::random_device{}());
 //	thread_local std::uniform_int_distribution<size_t> idx(0, params.emissiveAmount - 1);
@@ -321,15 +360,18 @@ glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>
 //	glm::vec3 sampleP = u * tris[emIdx].a + v * tris[emIdx].b + (1.0f - u - v) * tris[emIdx].c;
 //	glm::vec3 sampleN = tris[emIdx].normal;
 //
-//	glm::vec3 lVec = sampleP - ray.hitPos;
+//	glm::vec3 lVec = sampleP - rayState.hitPos;
 //	float dSq = glm::dot(lVec, lVec);
 //	float dist = sqrt(dSq);
 //	glm::vec3 dlDir = lVec / dist;
 //
-//	PathRay dlRay({ ray.hitPos + tris[ray.triIdx].normal * 0.001f, dlDir });
+//	glm::vec3 dlInvDir = 1.0f / dlDir;
+//
+//	PathRay dlRay({ rayState.hitPos + tris[rayState.triIdx].normal * 0.001f, dlDir, dlInvDir });
+//	PathRayState dlRayState;
 //
 //	float closestT = FLT_MAX;
-//	traverseFlatBVH(dlRay, closestT, tris, globalCompactBVH);
+//	traverseFlatBVH(dlRay, dlRayState, closestT, tris, globalCompactBVH);
 //
 //	if (closestT < dist - 0.001f) {
 //		return;
@@ -342,8 +384,8 @@ glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>
 //
 //	float pdf = 1.0f / (float(params.emissiveAmount) * area);
 //
-//	glm::vec3 dlDirT = glm::normalize(sampleP - ray.hitPos);
-//	glm::vec3 diff = sampleP - ray.hitPos;
+//	glm::vec3 dlDirT = glm::normalize(sampleP - rayState.hitPos);
+//	glm::vec3 diff = sampleP - rayState.hitPos;
 //	float distSq = glm::dot(diff, diff);
 //
 //	float cosSurface = glm::max(glm::dot(normal, dlDirT), 0.0f);
@@ -353,34 +395,8 @@ glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>
 //
 //	glm::vec3 emission = tris[emIdx].emissionCol * tris[emIdx].emissionIntensity;
 //
-//	ray.col += ray.throughput * emission * G / (pdf * PI);
+//	rayState.col += rayState.throughput * emission * G / (pdf * PI);
 //}
-
-glm::vec3 sky(PathRay& ray, Params& params) {
-
-	glm::vec3 skyCol(params.skyIntensity);
-
-	if (params.enableSky) {
-		glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
-
-		glm::vec3 skyTop = { 0.263f, 0.553f, 0.769f };
-		glm::vec3 skyBase = { 0.89f, 0.824f, 0.698f };
-
-		float upAmount = glm::pow(glm::max(glm::dot(ray.dir, worldUp), 0.0f), 0.5f);
-
-		skyCol = glm::mix(skyBase, skyTop, upAmount) * params.skyIntensity;
-	}
-
-	if (params.enableSun) {
-		float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
-
-		if (glm::degrees(sunAngle) < params.sunAngle) {
-			skyCol = params.sunColor * params.sunIntensity;
-		}
-	}
-
-	return skyCol;
-}
 
 glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 
@@ -411,6 +427,34 @@ glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 	};
 
 	return pCol * params.skyIntensity;
+}
+
+
+glm::vec3 environmentLogic(PathRay& ray, Params& params, Image& hdri) {
+
+	glm::vec3 skyCol(params.skyIntensity);
+
+	if (params.enableSky) {
+		glm::vec3 worldUp = { 0.0f, 0.0f, 1.0f };
+
+		float upAmount = glm::pow(glm::max(glm::dot(ray.dir, worldUp), 0.0f), 0.5f);
+
+		skyCol = glm::mix(params.skyBase, params.skyTop, upAmount) * params.skyIntensity;
+	}
+	
+	if(params.enableHDRI) {
+		skyCol = hdriLogic(ray, params, hdri);
+	}
+
+	if (params.enableSun) {
+		float sunAngle = glm::acos(glm::dot(ray.dir, params.sunDir));
+
+		if (glm::degrees(sunAngle) < params.sunAngle) {
+			skyCol = params.sunColor * params.sunIntensity;
+		}
+	}
+
+	return skyCol;
 }
 
 //void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow) {
@@ -490,7 +534,7 @@ glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 //		//}
 //}
 
-std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, std::vector<Tri>& tris, Params& params, Image& hdri, bool debug) {
+std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, bool debug) {
 
 	debugRays.clear();
 
@@ -508,7 +552,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 		rayState.hit = false;
 		rayState.triIdx = UINT32_MAX;
 
-		traverseFlatBVH(ray, rayState, closestT, tris, globalCompactBVH);
+		traceRay(data.embreeBVH, ray, rayState, closestT);
 
 		if (debug) {
 			float drawLength = closestT;
@@ -521,7 +565,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 		if (rayState.isVolume && rayState.triIdx != UINT32_MAX) {
 			float randomVal = std::max(dist(rng), 0.0001f);
-			float scatterDist = -std::log(randomVal) / tris[rayState.triIdx].density;
+			float scatterDist = -std::log(randomVal) / data.tris[rayState.triIdx].density;
 
 			if (scatterDist < closestT) {
 
@@ -536,7 +580,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 				ray.dir = glm::normalize(randDir);
 				ray.invDir = 1.0f / ray.dir;
 
-				rayState.throughput *= tris[rayState.triIdx].volumeCol;
+				rayState.throughput *= data.tris[rayState.triIdx].volumeCol;
 
 				continue;
 			}
@@ -544,7 +588,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 		if (rayState.triIdx != UINT32_MAX && rayState.active) {
 
-			glm::vec3 interpolatedNormal = InterpolateNormal(rayState, tris);
+			glm::vec3 interpolatedNormal = InterpolateNormal(rayState, data.tris);
 
 			float cosTheta = glm::dot(ray.dir, interpolatedNormal);
 			bool isInside = cosTheta > 0.0f;
@@ -552,17 +596,17 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 			glm::vec3 orientedNormal = isInside ? -interpolatedNormal : interpolatedNormal;
 
 			if (!rayState.isRefraction) {
-				ray.src = rayState.hitPos + tris[rayState.triIdx].normal * 0.001f;
+				ray.src = rayState.hitPos + data.tris[rayState.triIdx].normal * 0.001f;
 			}
 
-			float emissionVal = (tris[rayState.triIdx].emissionCol.x + tris[rayState.triIdx].emissionCol.y + tris[rayState.triIdx].emissionCol.z) / 3.0f;
-			bool isEmissive = tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
+			float emissionVal = (data.tris[rayState.triIdx].emissionCol.x + data.tris[rayState.triIdx].emissionCol.y + data.tris[rayState.triIdx].emissionCol.z) / 3.0f;
+			bool isEmissive = data.tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
 
 			if (isEmissive) {
-				rayState.col += rayState.throughput * tris[rayState.triIdx].emissionCol * tris[rayState.triIdx].emissionIntensity;
+				rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
 			}
 
-			bool isVolumeMaterial = dist(rng) < tris[rayState.triIdx].volume;
+			bool isVolumeMaterial = dist(rng) < data.tris[rayState.triIdx].volume;
 
 			if (isVolumeMaterial) {
 				ray.src = rayState.hitPos - orientedNormal * 0.001f;
@@ -579,21 +623,21 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 				bool isSpecular = false;
 
 				if (!rayState.isRefraction) {
-					isSpecular = specularLighting(ray, rayState, interpolatedNormal, tris);
+					isSpecular = specularLighting(ray, rayState, interpolatedNormal, data.tris);
 				}
 
 				if (!isSpecular) {
-					if (dist(rng) < tris[rayState.triIdx].refraction) {
-						refractionLighting(ray, rayState, interpolatedNormal, tris);
+					if (dist(rng) < data.tris[rayState.triIdx].refraction) {
+						refractionLighting(ray, rayState, interpolatedNormal, data.tris);
 					}
 					else {
-						rayState.throughput *= tris[rayState.triIdx].albedo;
+						rayState.throughput *= data.tris[rayState.triIdx].albedo;
 
-						diffuseLighting(ray, rayState, interpolatedNormal, tris);
+						diffuseLighting(ray, rayState, interpolatedNormal, data.tris);
 					}
 				}
 				else {
-					rayState.throughput *= tris[rayState.triIdx].specularCol;
+					rayState.throughput *= data.tris[rayState.triIdx].specularCol;
 				}
 			}
 		}
@@ -601,8 +645,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 		if (!rayState.hit && !rayState.isVolume) {
 			rayState.active = false;
 
-			//rayState.col += rayState.throughput * sky(ray, params);
-			rayState.col += rayState.throughput * hdriLogic(ray, params, hdri);
+			rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
 
 			break;
 		}
@@ -654,7 +697,7 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 			rayStates[index].col = glm::vec3(0.0f);
 			rayStates[index].throughput = glm::vec3(1.0f * myCam.ISO);
 			rayStates[index].length = FLT_MAX;
-			rayStates[index].triIdx = FLT_MAX;
+			rayStates[index].triIdx = UINT32_MAX;
 			rayStates[index].hit = false;
 			rayStates[index].active = true;
 			rayStates[index].isRefraction = false;
@@ -709,7 +752,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 #pragma omp parallel for
 				for (int i = 0; i < data.rays.size(); i++) {
-					rayLogic(data.rays[i], data.rayStates[i], data.tris, params, hdri);
+					rayLogic(data.rays[i], data.rayStates[i], params, data, hdri);
 				}
 
 				for (size_t i = 0; i < data.frameBuffer.size(); i++) {
@@ -735,7 +778,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 #pragma omp parallel for
 			for (int i = 0; i < data.rays.size(); i++) {
-				rayLogic(data.rays[i], data.rayStates[i], data.tris, params, hdri);
+				rayLogic(data.rays[i], data.rayStates[i], params, data, hdri);
 			}
 
 			for (size_t i = 0; i < data.frameBuffer.size(); i++) {

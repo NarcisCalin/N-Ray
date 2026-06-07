@@ -11,12 +11,14 @@
 #include <imgui.h>
 #include <rlImGui.h>
 #include <immintrin.h>
+#include <rtcore.h>
 
 #define RAYGUI_IMPLEMENTATION
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <globalIds.h>
 #include <globalParams.h>
 #include <screenStartup.h>
 #include <tri.h>
@@ -40,6 +42,9 @@ MouseRay mRayGen;
 
 std::vector<BVH> globalBVH;
 std::vector<CompactBVH> globalCompactBVH;
+
+uint32_t globalTriId = 0;
+uint32_t globalModelId = 0;
 
 void createFlatBVH() {
 
@@ -212,7 +217,7 @@ void traceDebugRay(Image& hdri) {
 		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
 		PathRayState mRayState = mRayGen.mouseRayState();
 
-		debugRays = pt.rayLogic(mRay, mRayState, data.tris, params, hdri, true);
+		debugRays = pt.rayLogic(mRay, mRayState, params, data, hdri, true);
 	}
 
 	for (size_t i = 0; i < debugRays.size(); i++) {
@@ -277,7 +282,7 @@ void selectModel() {
 		}
 
 		if (selecRayState.hit) {
-			data.models[data.tris[selecRayState.triIdx].modelIdx].selected = true;;
+			data.models[data.tris[selecRayState.triIdx].modelId].selected = true;;
 		}
 	}
 }
@@ -296,7 +301,7 @@ int main() {
 
 	ObjImporter glass{ "models/sceneGlass.obj", data,
 		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
+		1.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 15.0f, 0.0f , true };
 
 	ObjImporter metal{ "models/sceneMetal.obj", data,
 		{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -317,8 +322,9 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	//ObjImporter area{ "models/sceneArea.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, false };
-	//ObjImporter emissive{ "models/sceneEmissive.obj", data, 1.5f, 1.0f, 10.0f, 0.0f, 0.0f, true };
+	/*ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
+		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 1.0f, 100.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
@@ -332,15 +338,49 @@ int main() {
 		pt.flattenBVH(0, globalBVH, globalCompactBVH);
 	}
 
-	/*sortByEmission();
-	findEmissiveAmount();*/
+	//data.embreeBVH.convertToEmbree(data.tris);
+	data.embreeBVH.build(data.tris);
 
-	for (size_t i = 0; i < data.tris.size(); i++) {
-		data.tris[i].idx = uint32_t(i);
-		data.models[data.tris[i].modelIdx].tris.push_back(uint32_t(i));
+	//sortByEmission();
+	//findEmissiveAmount();
+
+	for (size_t i = 0; i < data.models.size(); i++) {
+		data.models[i].tris.clear();
 	}
 
-	std::cout << data.models.size();
+	for (size_t i = 0; i < data.tris.size(); i++) {
+		data.models[data.tris[i].modelId].tris.push_back(uint32_t(i));
+	}
+
+	std::vector<uint32_t> emissive;
+	std::vector<uint32_t> nonEmissive;
+
+	for (size_t i = 0; i < data.tris.size(); i++) {
+		float emVal = (data.tris[i].emissionCol.x + data.tris[i].emissionCol.y + data.tris[i].emissionCol.z) / 3.0f;
+		float totalEmission = data.tris[i].emissionIntensity * emVal;
+
+		if (totalEmission > 0.0f)
+			emissive.push_back(uint32_t(i));
+		else
+			nonEmissive.push_back(uint32_t(i));
+	}
+
+	std::sort(emissive.begin(), emissive.end(), [&](uint32_t a, uint32_t b) {
+		auto em = [&](uint32_t idx) {
+			float v = (data.tris[idx].emissionCol.x + data.tris[idx].emissionCol.y + data.tris[idx].emissionCol.z) / 3.0f;
+			return data.tris[idx].emissionIntensity * v;
+			};
+		return em(a) > em(b);
+		});
+
+	data.triMap = emissive;
+	data.triMap.insert(data.triMap.end(), nonEmissive.begin(), nonEmissive.end());
+
+	params.emissiveAmount = uint32_t(emissive.size());
+
+	std::cout << "Model Count: " << data.models.size() << '\n';
+
+	std::cout << "Triangle Count: " << data.tris.size() << '\n';
 
 	cam3D.position = { myCam.camPos.x, myCam.camPos.y, myCam.camPos.z };
 	cam3D.target = { myCam.camTarget.x, myCam.camTarget.y, myCam.camTarget.z };

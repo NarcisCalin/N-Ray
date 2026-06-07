@@ -80,5 +80,8 @@
     <ClInclude Include="include\model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\globalIds.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

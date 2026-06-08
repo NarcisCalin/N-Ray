@@ -3,7 +3,7 @@
 void UI::logic(Params& params, Data& data, PTCam& myCam) {
 
 	glm::vec2 sliderSize = { 200.0f, 30.0f };
-	glm::vec2 buttonSize = { 150.0f, 30.0f };
+	glm::vec2 buttonSize = { 170.0f, 30.0f };
 
 	ImGui::SetNextWindowSize(ImVec2(200.0f, float(params.screenSize.y)), ImGuiCond_Once);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Once);
@@ -86,7 +86,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		params.shouldSample = false;
 	}
 
-	if (sliderHelper("Sky Intensity", "Sets sky intensity", sliderSize, params.skyIntensity, 0.0f, 10.0f, LogSlider)) {
+	if (sliderHelper("Sky Intensity", "Sets intensity for the sky / HDRI dome", sliderSize, params.skyIntensity, 0.0f, 10.0f, LogSlider)) {
 		params.shouldSample = false;
 	}
 
@@ -168,6 +168,30 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	sliderHelper("Exposure", "Controls image exposure after rendering", sliderSize, params.exposure, 0.0f, 5.0f, LogSlider);
 
 	sliderHelper("Contrast", "Controls image contrast", sliderSize, params.contrast, 0.0f, 2.0f, LogSlider);
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
+	ImGui::Text("Ray Settings");
+
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	if (buttonHelper("Enable Caustics", "Enables caustics rendering", buttonSize, params.enableCaustics)) {
+		params.shouldSample = false;
+	}
+
+	if (buttonHelper("Biased Caustics (Test)", "Enables biased caustics algorithm (It is an experiment and not truly physically based)", buttonSize, params.enableBiasCaustics, true, params.enableCaustics)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Biased Caustics G", "This clamps the strength of the caustics when a refractive surface touches a diffuse surface", sliderSize, params.biasCausticsContactClamp, 0.1f, 5.0f)) {
+		params.shouldSample = false;
+	}
+
+	sliderHelper("Caustics Intensity", "Caustics intensity", sliderSize, params.causticsIntensity, 0.0f, 1.0f);
+
+	sliderHelper("Main Buffer Intensity", "Intensity of the base buffer (for example, caustics are not part of the main buffer", sliderSize, params.mainBufferIntensity, 0.0f, 1.0f);
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -366,8 +390,6 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::Spacing();
 
 	ImGui::Text("Triangles: %d", (int)data.tris.size());
-
-	ImGui::Text("MAXID: %d", (int)globalTriId);
 
 	ImGui::Spacing();
 	ImGui::Separator();

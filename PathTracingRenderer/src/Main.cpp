@@ -201,7 +201,7 @@ void findEmissiveAmount() {
 			break;
 		}
 
-		params.emissiveAmount++;
+		params.refractiveAmount++;
 	}
 }
 
@@ -322,13 +322,13 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	/*ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
+	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 100.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
+		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
-	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
+	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer, data.causticsBuffer);
 	data.rays.resize(screen.resX * screen.resY);
 	data.rayStates.resize(screen.resX * screen.resY);
 
@@ -352,31 +352,20 @@ int main() {
 		data.models[data.tris[i].modelId].tris.push_back(uint32_t(i));
 	}
 
-	std::vector<uint32_t> emissive;
-	std::vector<uint32_t> nonEmissive;
+	std::vector<uint32_t> refractive;
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
-		float emVal = (data.tris[i].emissionCol.x + data.tris[i].emissionCol.y + data.tris[i].emissionCol.z) / 3.0f;
-		float totalEmission = data.tris[i].emissionIntensity * emVal;
 
-		if (totalEmission > 0.0f)
-			emissive.push_back(uint32_t(i));
-		else
-			nonEmissive.push_back(uint32_t(i));
+		float totalRefraction = data.tris[i].refraction;
+
+		if (totalRefraction > 0.0f) {
+			refractive.push_back(uint32_t(i));
+		}
 	}
 
-	std::sort(emissive.begin(), emissive.end(), [&](uint32_t a, uint32_t b) {
-		auto em = [&](uint32_t idx) {
-			float v = (data.tris[idx].emissionCol.x + data.tris[idx].emissionCol.y + data.tris[idx].emissionCol.z) / 3.0f;
-			return data.tris[idx].emissionIntensity * v;
-			};
-		return em(a) > em(b);
-		});
+	data.triMap = refractive;
 
-	data.triMap = emissive;
-	data.triMap.insert(data.triMap.end(), nonEmissive.begin(), nonEmissive.end());
-
-	params.emissiveAmount = uint32_t(emissive.size());
+	params.refractiveAmount = uint32_t(refractive.size());
 
 	std::cout << "Model Count: " << data.models.size() << '\n';
 
@@ -424,7 +413,7 @@ int main() {
 
 		if (prevRes != params.res) {
 			prevRes = params.res;
-			screen.initScreen(params.res, data.frameBuffer, data.accumBuffer);
+			screen.initScreen(params.res, data.frameBuffer, data.accumBuffer, data.causticsBuffer);
 			data.rays.clear();
 
 			UnloadTexture(render);

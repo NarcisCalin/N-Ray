@@ -17,7 +17,7 @@ struct Screen {
 		screenSizeX(screenSizeX), screenSizeY(screenSizeY) {
 	}
 
-	void initScreen(int& res, std::vector<Color>& framebuffer, std::vector<glm::vec3>& accumBuffer) {
+	void initScreen(int& res, std::vector<Color>& framebuffer, std::vector<glm::vec3>& accumBuffer, std::vector<glm::vec3>& causticsBuffer) {
 
 		screenSizeX = float(GetScreenWidth());
 		screenSizeY = float(GetScreenHeight());
@@ -29,6 +29,7 @@ struct Screen {
 
 		framebuffer.resize(resX * resY);
 		accumBuffer.resize(resX * resY);
+		causticsBuffer.resize(resX * resY);
 	}
 
 };

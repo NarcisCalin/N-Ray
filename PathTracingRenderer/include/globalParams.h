@@ -18,6 +18,7 @@ struct Data {
 	std::vector<PathRayState> rayStates;
 	std::vector<Color> frameBuffer;
 	std::vector<glm::vec3> accumBuffer;
+	std::vector<glm::vec3> causticsBuffer;
 	std::vector<PTModel> models;
 
 	std::vector<uint32_t> triMap;
@@ -38,7 +39,7 @@ struct Params {
 	int currentSample = 0;
 	bool enableSky = true;
 	bool enableHDRI = true;
-	float skyIntensity = 1.0f;
+	float skyIntensity = 0.0f;
 	float blur = 1.0f;
 	float exposure = 1.0f;
 	float contrast = 0.8f;
@@ -55,7 +56,7 @@ struct Params {
 	glm::vec3 skyTop = skyTopOriginal;
 	glm::vec3 skyBase = skyBaseOriginal;
 
-	size_t emissiveAmount = 0;
+	size_t refractiveAmount = 0;
 
 	float totalMs = 0.0f;
 	int totalFrames = 0;
@@ -67,4 +68,11 @@ struct Params {
 	bool enableDebugRay = false;
 	bool enableSelection = true;
 	bool render = true;
+
+	bool enableCaustics = true;
+	bool enableBiasCaustics = false;
+	float causticsIntensity = 1.0f;
+	float biasCausticsContactClamp = 0.1f;
+
+	float mainBufferIntensity = 1.0f;
 };

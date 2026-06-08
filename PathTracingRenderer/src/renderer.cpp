@@ -441,8 +441,8 @@ glm::vec3 environmentLogic(PathRay& ray, Params& params, Image& hdri) {
 
 		skyCol = glm::mix(params.skyBase, params.skyTop, upAmount) * params.skyIntensity;
 	}
-	
-	if(params.enableHDRI) {
+
+	if (params.enableHDRI) {
 		skyCol = hdriLogic(ray, params, hdri);
 	}
 
@@ -538,6 +538,10 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 	debugRays.clear();
 
+	bool causticsReceiver = false;
+
+	bool refracted = false;
+
 	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
 		thread_local std::mt19937 rng(std::random_device{}());
@@ -603,7 +607,14 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 			bool isEmissive = data.tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
 
 			if (isEmissive) {
-				rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+
+				if (!refracted) {
+					rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+				}
+				else {
+					rayState.isCaustic = true;
+					rayState.causticsCol += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+				}
 			}
 
 			bool isVolumeMaterial = dist(rng) < data.tris[rayState.triIdx].volume;
@@ -628,12 +639,149 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 				if (!isSpecular) {
 					if (dist(rng) < data.tris[rayState.triIdx].refraction) {
+
+						if (causticsReceiver) {
+
+							if (!params.enableCaustics) {
+								break;
+							}
+
+							if (params.enableBiasCaustics) {
+								if (bounce == 0) {
+									break;
+								}
+							}
+
+							refracted = true;
+						}
+
 						refractionLighting(ray, rayState, interpolatedNormal, data.tris);
 					}
 					else {
-						rayState.throughput *= data.tris[rayState.triIdx].albedo;
+						glm::vec3 diffuseAlbedo = data.tris[rayState.triIdx].albedo;
+						glm::vec3 incomingThroughput = rayState.throughput;
+
+						rayState.throughput *= diffuseAlbedo;
+
+						// I came up with this algorithm for caustics. I made most of the logic and then I used the help of AI for the math
+						// This is only an experiment and it is not physically accurate
+						if (params.enableBiasCaustics && params.enableCaustics) {
+							if (bounce == 0) {
+								static thread_local std::mt19937 rRng(std::random_device{}());
+								std::uniform_int_distribution<size_t> idx(0, params.refractiveAmount - 1);
+								std::uniform_real_distribution<float> uv(0.0f, 1.0f);
+
+								size_t emIdx = idx(rRng);
+								float u = uv(rRng);
+								float v = uv(rRng);
+
+								if (u + v > 1.0f) {
+									u = 1.0f - u;
+									v = 1.0f - v;
+								}
+
+								Tri& rTri = data.tris[data.triMap[emIdx]];
+								glm::vec3 sampleP = u * rTri.a + v * rTri.b + (1.0f - u - v) * rTri.c;
+								glm::vec3 sampleN = glm::normalize(u * rTri.aN + v * rTri.bN + (1.0f - u - v) * rTri.cN);
+
+								glm::vec3 diff = sampleP - rayState.hitPos;
+								float distanceSq = glm::dot(diff, diff);
+								float distance = std::sqrt(distanceSq);
+
+								glm::vec3 rDir = diff / distance;
+								glm::vec3 rInvDir = 1.0f / rDir;
+
+								glm::vec3 edge1 = rTri.b - rTri.a;
+								glm::vec3 edge2 = rTri.c - rTri.a;
+
+								float triArea = 0.5f * glm::length(glm::cross(edge1, edge2));
+								float pdfArea = 1.0f / (params.refractiveAmount * triArea);
+
+								PathRay rRay({ rayState.hitPos + data.tris[rayState.triIdx].normal * 0.001f, rDir, rInvDir });
+
+								PathRayState rRayState;
+								rRayState.active = true;
+								rRayState.throughput = glm::vec3(1.0f);
+								rRayState.isRefraction = false;
+								rRayState.isVolume = false;
+								rRayState.hit = false;
+								rRayState.triIdx = UINT32_MAX;
+
+								float rClosestT = FLT_MAX;
+								traceRay(data.embreeBVH, rRay, rRayState, rClosestT);
+
+								if (rRayState.triIdx != UINT32_MAX && data.tris[rRayState.triIdx].refraction > 0.0f) {
+
+									glm::vec3 actualDiff = rRayState.hitPos - rayState.hitPos;
+									float actualDistSq = glm::dot(actualDiff, actualDiff);
+									glm::vec3 actualNormal = InterpolateNormal(rRayState, data.tris);
+
+									float actualCosY = std::abs(glm::dot(rDir, actualNormal));
+
+									float rawG = actualCosY / (actualDistSq + 0.000001f);
+									float clampedG = glm::clamp(rawG, 0.0f, params.biasCausticsContactClamp);
+
+									float weight = clampedG / pdfArea;
+
+									refractionLighting(rRay, rRayState, actualNormal, data.tris);
+
+									rRay.invDir = 1.0f / rRay.dir;
+
+									for (int rBounce = 0; rBounce <= params.maxBounces; rBounce++) {
+
+										rClosestT = FLT_MAX;
+										rRayState.hit = false;
+										rRayState.triIdx = UINT32_MAX;
+
+										traceRay(data.embreeBVH, rRay, rRayState, rClosestT);
+
+										if (rRayState.triIdx != UINT32_MAX && rRayState.active) {
+
+											Tri& bTri = data.tris[rRayState.triIdx];
+											glm::vec3 rInterpolatedNormal = InterpolateNormal(rRayState, data.tris);
+
+											float emissionVal = (bTri.emissionCol.x + bTri.emissionCol.y + bTri.emissionCol.z) / 3.0f;
+											bool isEmissive = bTri.emissionIntensity > 0.0f && emissionVal > 0.0f;
+
+											if (isEmissive) {
+												float originCosTheta = std::abs(glm::dot(data.tris[rayState.triIdx].normal, rDir));
+
+												rayState.causticsCol += incomingThroughput * rRayState.throughput * bTri.emissionCol * bTri.emissionIntensity *
+													weight * originCosTheta * (diffuseAlbedo / glm::pi<float>());
+
+												rayState.isCaustic = true;
+												break;
+											}
+
+											if (bTri.refraction < 0.1f) {
+												break;
+											}
+
+											refractionLighting(rRay, rRayState, rInterpolatedNormal, data.tris);
+
+											rRayState.throughput *= bTri.refraction;
+										}
+
+										if (!rRayState.hit && !rRayState.isVolume) {
+											rRayState.active = false;
+
+											float originCosTheta = std::abs(glm::dot(data.tris[rayState.triIdx].normal, rDir));
+
+											rayState.causticsCol += incomingThroughput * rRayState.throughput * environmentLogic(rRay, params, hdri) *
+												weight * originCosTheta * (diffuseAlbedo / glm::pi<float>());
+
+											rayState.isCaustic = true;
+											break;
+										}
+
+										rRay.invDir = 1.0f / rRay.dir;
+									}
+								}
+							}
+						}
 
 						diffuseLighting(ray, rayState, interpolatedNormal, data.tris);
+						causticsReceiver = true;
 					}
 				}
 				else {
@@ -645,7 +793,13 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 		if (!rayState.hit && !rayState.isVolume) {
 			rayState.active = false;
 
-			rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
+			if (!refracted) {
+				rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
+			}
+			else {
+				rayState.isCaustic = true;
+				rayState.causticsCol += rayState.throughput * environmentLogic(ray, params, hdri);
+			}
 
 			break;
 		}
@@ -695,12 +849,14 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 			rays[index].invDir = 1.0f / dir;
 			rayStates[index].hitPos = src;
 			rayStates[index].col = glm::vec3(0.0f);
+			rayStates[index].causticsCol = glm::vec3(0.0f);
 			rayStates[index].throughput = glm::vec3(1.0f * myCam.ISO);
 			rayStates[index].length = FLT_MAX;
 			rayStates[index].triIdx = UINT32_MAX;
 			rayStates[index].hit = false;
 			rayStates[index].active = true;
 			rayStates[index].isRefraction = false;
+			rayStates[index].isCaustic = false;
 			rayStates[index].isVolume = false;
 		}
 	}
@@ -713,7 +869,7 @@ void PathTracer::drawScreen(Screen& screen, Params& params, Data& data, int& wid
 #pragma omp parallel for
 	for (int i = 0; i < data.frameBuffer.size(); i++) {
 
-		glm::vec3 col = data.accumBuffer[i] * invSamples;
+		glm::vec3 col = ((data.accumBuffer[i] * params.mainBufferIntensity) + (data.causticsBuffer[i] * ((params.causticsIntensity)))) * invSamples;
 
 		col *= params.exposure;
 
@@ -756,7 +912,10 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 				}
 
 				for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+
 					data.accumBuffer[i] += data.rayStates[i].col;
+
+					data.causticsBuffer[i] += data.rayStates[i].causticsCol;
 				}
 			}
 
@@ -770,6 +929,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 		for (size_t i = 0; i < data.frameBuffer.size(); i++) {
 
 			data.accumBuffer[i] = { 0.0f, 0.0f, 0.0f };
+			data.causticsBuffer[i] = { 0.0f, 0.0f, 0.0f };
 		}
 
 		for (int rays = 0; rays < params.raysPerPixel; rays++) {
@@ -782,7 +942,10 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 			}
 
 			for (size_t i = 0; i < data.frameBuffer.size(); i++) {
+
 				data.accumBuffer[i] += data.rayStates[i].col;
+
+				data.causticsBuffer[i] += data.rayStates[i].causticsCol;
 			}
 		}
 	}

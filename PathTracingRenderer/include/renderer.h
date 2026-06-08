@@ -17,12 +17,14 @@ struct PathRay {
 struct PathRayState {
 	glm::vec3 hitPos = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 col = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 causticsCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 throughput = { 1.0f, 1.0f, 1.0f };
 	float length = FLT_MAX;
 	uint32_t triIdx = UINT32_MAX;
 	bool hit = false;
 	bool active = true;
 	bool isRefraction = false;
+	bool isCaustic = false;
 	bool isVolume = false;
 };
 

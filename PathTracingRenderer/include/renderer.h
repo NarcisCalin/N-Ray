@@ -26,6 +26,9 @@ struct PathRayState {
 	bool isRefraction = false;
 	bool isCaustic = false;
 	bool isVolume = false;
+
+	float rmMinLength = FLT_MAX;
+	int rmSteps = 0;
 };
 
 struct DebugRay {
@@ -60,13 +63,19 @@ struct PathTracer {
 
 	bool traceRay(const EmbreeBVH& bvh, const PathRay& ray, PathRayState& rayState, float& closestT);
 
-	void directLight(glm::vec3& sampleP, glm::vec3& sampleN, float& pdf, Data& data, Params& params);
+	//void directLight(glm::vec3& sampleP, glm::vec3& sampleN, float& pdf, Data& data, Params& params);
 
 	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris);
 
 	std::vector<DebugRay> debugRays;
 
 	//void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
+
+	void causticsSampling(int& bounce, Data& data, Params& params, PathRay& ray, PathRayState& rayState, Image& hdri);
+
+	glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri);
+
+	glm::vec3 environmentLogic(PathRay& ray, Params& params, Image& hdri);
 
 	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, bool debug = false);
 

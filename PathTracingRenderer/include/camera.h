@@ -75,6 +75,12 @@ struct PTCam {
 			if (keyDownSample(KEY_LEFT_SHIFT, params)) camPos.z += currentSpeed;
 		}
 
+		if (IsMouseButtonDown(1)) {
+			camSpeed += GetMouseWheelMove();
+
+			camSpeed = std::max(camSpeed, 1.0f);
+		}
+
 		glm::vec2 mDelta = { GetMouseDelta().x, GetMouseDelta().y };
 		if (!params.isMouseHoveringUI && (mDelta.x != 0.0f || mDelta.y != 0.0f)) {
 			if (mouseDownSample(1, params)) {

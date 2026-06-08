@@ -39,10 +39,12 @@ struct Params {
 	int currentSample = 0;
 	bool enableSky = true;
 	bool enableHDRI = true;
-	float skyIntensity = 0.0f;
+	float skyIntensity = 1.0f;
 	float blur = 1.0f;
 	float exposure = 1.0f;
 	float contrast = 0.8f;
+
+	float hdriRotation = 0.0f;
 
 	bool enableSun = false;
 	glm::vec3 sunDir = { 0.0f, 0.0f, 1.0f };
@@ -75,4 +77,13 @@ struct Params {
 	float biasCausticsContactClamp = 0.1f;
 
 	float mainBufferIntensity = 1.0f;
+
+	float renderTime = 0.0f;
+
+	bool rayMarcher = true;
+	bool pathTracer = false;
+
+	int rmMaxSteps = 1000;
+	float rmNearPlane = 0.001f;
+	float rmFarPlane = 1000.0f;
 };

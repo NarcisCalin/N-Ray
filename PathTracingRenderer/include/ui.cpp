@@ -40,6 +40,35 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	ImGui::Spacing();
 	ImGui::Separator();
 
+	ImGui::Text("Engine Settings");
+
+	ImGui::Separator();
+	ImGui::Spacing();
+
+
+	if (buttonHelper("Path Tracer", "Enables standard path tracing", buttonSize, params.pathTracer)) {
+		params.shouldSample = false;
+	}
+
+	if (buttonHelper("Ray Marcher", "Enables ray marching rendering", buttonSize, params.rayMarcher)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("RM Max Steps", "Maximum steps for ray marching", sliderSize, params.rmMaxSteps, 1, 1024)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("RM Min Dist", "Minimum ray marching step length for collision detection", sliderSize, params.rmNearPlane, 0.0001f, 1.0f, LogSlider)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("RM Max Dist", "If a ray step is larger than this, it stops marching", sliderSize, params.rmFarPlane, 1.0f, 1000.0f, LogSlider)) {
+		params.shouldSample = false;
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
 	ImGui::Text("Sky Settings");
 
 	ImGui::Separator();
@@ -87,6 +116,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	}
 
 	if (sliderHelper("Sky Intensity", "Sets intensity for the sky / HDRI dome", sliderSize, params.skyIntensity, 0.0f, 10.0f, LogSlider)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("HDRI Rotation", "Rotation of the HDRI in degrees", sliderSize, params.hdriRotation, 0.0f, 360.0f)) {
 		params.shouldSample = false;
 	}
 
@@ -149,6 +182,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 	}
 
 	if (sliderHelper("ISO", "ISO for camera exposure", sliderSize, myCam.ISO, 0.0f, 5.0f)) {
+		params.shouldSample = false;
+	}
+
+	if (sliderHelper("Navigation Speed", "How fast the camera moves with WASD", sliderSize, myCam.camSpeed, 1.0f, 50.0f)) {
 		params.shouldSample = false;
 	}
 
@@ -367,6 +404,8 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 		avgMsIdx = 0;
 	}
 
+	params.renderTime += params.dt;
+
 	ImGui::SetNextWindowSize(ImVec2(250.0f, 400.0f), ImGuiCond_Once);
 	ImGui::SetNextWindowPos(ImVec2(params.screenSize.x - 250.0f, 0.0f), ImGuiCond_Once);
 	ImGui::Begin("Stats", nullptr);
@@ -409,17 +448,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam) {
 
 	ImGui::Text("Bounces: %d", params.maxBounces);
 
-	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Spacing();
-
-	ImGui::Text("Total time (ms): %.2f ms", params.totalMs);
-
-	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Spacing();
-
-	ImGui::Text("Total time (sec): %.2f sec", params.totalMs / 1000.0f);
+	ImGui::Text("Render Time: %.2f sec", params.renderTime);
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -462,7 +491,7 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, fl
 
 	ImGui::Text("%s", label.c_str());
 
-	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.3f")) {
+	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.4f")) {
 		isSliderUsed = true;
 	}
 
@@ -518,7 +547,7 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, fl
 
 	ImGui::Text("%s", label.c_str());
 
-	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.3f", ImGuiSliderFlags_Logarithmic)) {
+	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.4f", ImGuiSliderFlags_Logarithmic)) {
 		isSliderUsed = true;
 	}
 

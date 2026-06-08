@@ -248,7 +248,7 @@ void traceDebugRay(Image& hdri) {
 	}
 }
 
-void setDofDist() {
+void setDofDist(Image& hdri) {
 	PathRay dofRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
 	PathRayState dofRayState = mRayGen.mouseRayState();
 
@@ -256,10 +256,15 @@ void setDofDist() {
 	dofRayState.hit = false;
 	dofRayState.triIdx = UINT32_MAX;
 
-	pt.traverseFlatBVH(dofRay, dofRayState, closestT, data.tris, globalCompactBVH);
+	if (params.pathTracer) {
+		pt.traceRay(data.embreeBVH, dofRay, dofRayState, closestT);
+	}
+	else if (params.rayMarcher) {
+		pt.rayLogic(dofRay, dofRayState, params, data, hdri);
+	}
 
 	if (!dofRayState.hit) {
-		myCam.focusDist = closestT;
+		myCam.focusDist = 1000.0f;
 	}
 	else {
 		myCam.focusDist = glm::distance(myCam.camPos, dofRayState.hitPos);
@@ -322,9 +327,9 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
+	/*ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
+		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
@@ -437,7 +442,7 @@ int main() {
 		}
 
 		if (myCam.clickDof && IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
-			setDofDist();
+			setDofDist(hdri);
 			params.shouldSample = false;
 		}
 

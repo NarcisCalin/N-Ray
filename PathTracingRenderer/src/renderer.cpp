@@ -49,27 +49,107 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	return false;
 }
 
-bool PathTracer::rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT) {
-	float tx1 = (boxMin.x - ray.src.x) * ray.invDir.x;
-	float tx2 = (boxMax.x - ray.src.x) * ray.invDir.x;
+// This code is not used anymore since I added Embree. If you enable it, add invDir glm::vec3 to the PathRay struct
 
-	float tmin = std::min(tx1, tx2);
-	float tmax = std::max(tx1, tx2);
+//bool PathTracer::rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT) {
+//	float tx1 = (boxMin.x - ray.src.x) * ray.invDir.x;
+//	float tx2 = (boxMax.x - ray.src.x) * ray.invDir.x;
+//
+//	float tmin = std::min(tx1, tx2);
+//	float tmax = std::max(tx1, tx2);
+//
+//	float ty1 = (boxMin.y - ray.src.y) * ray.invDir.y;
+//	float ty2 = (boxMax.y - ray.src.y) * ray.invDir.y;
+//
+//	tmin = std::max(tmin, std::min(ty1, ty2));
+//	tmax = std::min(tmax, std::max(ty1, ty2));
+//
+//	float tz1 = (boxMin.z - ray.src.z) * ray.invDir.z;
+//	float tz2 = (boxMax.z - ray.src.z) * ray.invDir.z;
+//
+//	tmin = std::max(tmin, std::min(tz1, tz2));
+//	tmax = std::min(tmax, std::max(tz1, tz2));
+//
+//	return tmax >= std::max(tmin, 0.0f) && tmin < maxT;
+//}
 
-	float ty1 = (boxMin.y - ray.src.y) * ray.invDir.y;
-	float ty2 = (boxMax.y - ray.src.y) * ray.invDir.y;
 
-	tmin = std::max(tmin, std::min(ty1, ty2));
-	tmax = std::min(tmax, std::max(ty1, ty2));
-
-	float tz1 = (boxMin.z - ray.src.z) * ray.invDir.z;
-	float tz2 = (boxMax.z - ray.src.z) * ray.invDir.z;
-
-	tmin = std::max(tmin, std::min(tz1, tz2));
-	tmax = std::min(tmax, std::max(tz1, tz2));
-
-	return tmax >= std::max(tmin, 0.0f) && tmin < maxT;
-}
+//void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
+//
+//	const BVH& buildNode = buildNodes[buildNodeIdx];
+//
+//	CompactBVH compactNode;
+//	compactNode.min = buildNode.min;
+//	compactNode.max = buildNode.max;
+//
+//	uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
+//
+//	flatNodes.push_back(compactNode);
+//
+//	if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
+//
+//		uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
+//
+//		flatNodes[myFlatIndex].triCount = count;
+//		flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
+//
+//	}
+//	else {
+//		flatNodes[myFlatIndex].triCount = 0;
+//
+//		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
+//		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
+//
+//		flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
+//	}
+//}
+//
+//void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
+//
+//	uint32_t idx = 0;
+//	uint32_t nodeCount = static_cast<uint32_t>(flatBVH.size());
+//
+//	if (nodeCount == 0) return;
+//
+//	while (idx < nodeCount) {
+//		const CompactBVH& node = flatBVH[idx];
+//
+//		if (!rayAABB(ray, node.min, node.max, closestT)) {
+//
+//			if (node.triCount > 0) {
+//				idx++;
+//			}
+//			else {
+//				idx = node.missLink;
+//			}
+//			continue;
+//		}
+//
+//		if (node.triCount > 0) {
+//
+//			for (uint32_t i = 0; i < node.triCount; ++i) {
+//
+//				float t;
+//				const Tri& tri = tris[node.startIndex + i];
+//
+//				if (RayIntersectsTriangle(ray, tri, t)) {
+//					if (t < closestT) {
+//						closestT = t;
+//						rayState.hit = true;
+//						rayState.hitPos = ray.src + ray.dir * t;
+//						rayState.triIdx = tri.id;
+//					}
+//				}
+//			}
+//
+//			idx++;
+//
+//		}
+//		else {
+//			idx++;
+//		}
+//	}
+//}
 
 void PathTracer::diffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, std::vector<Tri>& tris) {
 
@@ -101,6 +181,36 @@ void PathTracer::diffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3
 	if (glm::dot(worldDir, tris[rayState.triIdx].normal) < 0.0f) {
 		worldDir = -worldDir;
 	}
+
+	ray.dir = worldDir;
+}
+
+void PathTracer::rmDiffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal) {
+
+	static thread_local std::mt19937 rng(std::random_device{}());
+	static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+	float u1 = dist(rng);
+	float u2 = dist(rng);
+	float r = sqrtf(u1);
+	float phi = 2.0f * PI * u2;
+
+	glm::vec3 localDir(
+		r * cosf(phi),
+		r * sinf(phi),
+		sqrtf(1.0f - u1)
+	);
+
+	glm::vec3 up = fabsf(normal.z) < 0.999f ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
+	glm::vec3 tangent = glm::normalize(glm::cross(up, normal));
+	glm::vec3 bitangent = glm::cross(normal, tangent);
+
+	glm::vec3 worldDir =
+		localDir.x * tangent +
+		localDir.y * bitangent +
+		localDir.z * normal;
+
+	worldDir = glm::normalize(worldDir);
 
 	ray.dir = worldDir;
 }
@@ -155,6 +265,37 @@ bool PathTracer::specularLighting(PathRay& ray, PathRayState& rayState, glm::vec
 	return true;
 }
 
+bool PathTracer::rmSpecularLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, float& roughness, float& IOR, float& metalness) {
+	static thread_local std::mt19937 rng(std::random_device{}());
+	static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+	float r1 = dist(rng);
+	float r2 = dist(rng);
+	glm::vec3 microfacetNormal = sampleGGX(normal, roughness, r1, r2);
+
+	float r0Dielectric = ((airIOR - IOR) / (airIOR + IOR));
+	r0Dielectric = r0Dielectric * r0Dielectric;
+
+	float r0 = glm::mix(r0Dielectric, 1.0f, metalness);
+
+	float cosThetaI = glm::clamp(-glm::dot(ray.dir, microfacetNormal), 0.0f, 1.0f);
+	float rTheta = r0 + (1.0f - r0) * std::pow(1.0f - cosThetaI, 5.0f);
+
+	if (dist(rng) > rTheta) {
+		return false;
+	}
+
+	glm::vec3 reflectedDir = glm::reflect(ray.dir, microfacetNormal);
+
+	if (glm::dot(reflectedDir, normal) <= 0.0f ||
+		glm::dot(reflectedDir, normal) <= 0.0f) {
+		return false;
+	}
+
+	ray.dir = reflectedDir;
+	return true;
+}
+
 void PathTracer::refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris) {
 	float n1 = airIOR;
 	float n2 = tris[rayState.triIdx].IOR;
@@ -199,80 +340,47 @@ void PathTracer::refractionLighting(PathRay& ray, PathRayState& rayState, glm::v
 	}
 }
 
-void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
+void PathTracer::rmRefractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, float& IOR, float& absorption, glm::vec3& absorptionCol) {
+	float n1 = airIOR;
+	float n2 = IOR;
 
-	const BVH& buildNode = buildNodes[buildNodeIdx];
+	float cosi = glm::dot(ray.dir, normal);
 
-	CompactBVH compactNode;
-	compactNode.min = buildNode.min;
-	compactNode.max = buildNode.max;
+	bool isExiting = cosi > 0.0f;
 
-	uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
+	if (isExiting) {
+		std::swap(n1, n2);
 
-	flatNodes.push_back(compactNode);
+		normal = -normal;
 
-	if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
+		float dist = glm::distance(rayState.hitPos, ray.src);
 
-		uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
+		float absorptionFactor = dist * absorption;
+		glm::vec3 absorptionScale = glm::exp(-absorptionCol * absorptionFactor);
 
-		flatNodes[myFlatIndex].triCount = count;
-		flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
+		rayState.throughput *= absorptionScale;
+	}
 
+	float eta = n1 / n2;
+
+	float k = 1.0f - eta * eta * (1.0f - cosi * cosi);
+
+	if (k < 0.0f) {
+		ray.dir = glm::reflect(ray.dir, normal);
+		ray.src = rayState.hitPos + normal * 0.001f;
+		rayState.isRefraction = true;
+		return;
+	}
+
+	ray.dir = glm::normalize(glm::refract(ray.dir, normal, eta));
+
+	if (isExiting) {
+		ray.src = rayState.hitPos - normal * 0.001f;
+		rayState.isRefraction = false;
 	}
 	else {
-		flatNodes[myFlatIndex].triCount = 0;
-
-		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
-		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
-
-		flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
-	}
-}
-
-void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
-
-	uint32_t idx = 0;
-	uint32_t nodeCount = static_cast<uint32_t>(flatBVH.size());
-
-	if (nodeCount == 0) return;
-
-	while (idx < nodeCount) {
-		const CompactBVH& node = flatBVH[idx];
-
-		if (!rayAABB(ray, node.min, node.max, closestT)) {
-
-			if (node.triCount > 0) {
-				idx++;
-			}
-			else {
-				idx = node.missLink;
-			}
-			continue;
-		}
-
-		if (node.triCount > 0) {
-
-			for (uint32_t i = 0; i < node.triCount; ++i) {
-
-				float t;
-				const Tri& tri = tris[node.startIndex + i];
-
-				if (RayIntersectsTriangle(ray, tri, t)) {
-					if (t < closestT) {
-						closestT = t;
-						rayState.hit = true;
-						rayState.hitPos = ray.src + ray.dir * t;
-						rayState.triIdx = tri.id;
-					}
-				}
-			}
-
-			idx++;
-
-		}
-		else {
-			idx++;
-		}
+		ray.src = rayState.hitPos - normal * 0.001f;
+		rayState.isRefraction = true;
 	}
 }
 
@@ -425,7 +533,7 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 		float distance = std::sqrt(distanceSq);
 
 		glm::vec3 rDir = diff / distance;
-		glm::vec3 rInvDir = 1.0f / rDir;
+		//glm::vec3 rInvDir = 1.0f / rDir;
 
 		glm::vec3 edge1 = rTri.b - rTri.a;
 		glm::vec3 edge2 = rTri.c - rTri.a;
@@ -433,7 +541,7 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 		float triArea = 0.5f * glm::length(glm::cross(edge1, edge2));
 		float pdfArea = 1.0f / (params.refractiveAmount * triArea);
 
-		PathRay rRay({ rayState.hitPos + data.tris[rayState.triIdx].normal * 0.001f, rDir, rInvDir });
+		PathRay rRay({ rayState.hitPos + data.tris[rayState.triIdx].normal * 0.001f, rDir });
 
 		PathRayState rRayState;
 		rRayState.active = true;
@@ -460,8 +568,6 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 			float weight = clampedG / pdfArea;
 
 			refractionLighting(rRay, rRayState, actualNormal, data.tris);
-
-			rRay.invDir = 1.0f / rRay.dir;
 
 			for (int rBounce = 0; rBounce <= params.maxBounces; rBounce++) {
 
@@ -509,8 +615,6 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 					rayState.isCaustic = true;
 					break;
 				}
-
-				rRay.invDir = 1.0f / rRay.dir;
 			}
 		}
 	}
@@ -549,6 +653,13 @@ glm::vec3 PathTracer::hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 		data[pIdx + 2]
 	};
 
+	float val = (pCol.x + pCol.y + pCol.z) / 3.0f;
+
+	if (val / params.hdriBrigthest <= params.hdriThreshold) {
+
+		pCol = { 0.0f, 0.0f, 0.0f };
+	}
+
 	return pCol * params.skyIntensity;
 }
 
@@ -578,6 +689,31 @@ glm::vec3 PathTracer::environmentLogic(PathRay& ray, Params& params, Image& hdri
 	}
 
 	return skyCol;
+}
+
+void PathTracer::hdriBrigthestValue(Image& hdri, float& maxVal) {
+
+	maxVal = 0.0f;
+
+	for (size_t i = 0; i < hdri.height; i++) {
+		for (size_t j = 0; j < hdri.width; j++) {
+
+			int pIdx = (i * hdri.width + j) * 3;
+
+			float* data = (float*)hdri.data;
+
+			glm::vec3 pCol = {
+				data[pIdx + 0],
+				data[pIdx + 1],
+				data[pIdx + 2]
+			};
+
+			float val = (pCol.x + pCol.y + pCol.z) / 3.0f;
+
+			maxVal = glm::max(maxVal, val);
+		}
+	}
+
 }
 
 //void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow) {
@@ -657,56 +793,139 @@ glm::vec3 PathTracer::environmentLogic(PathRay& ray, Params& params, Image& hdri
 //		//}
 //}
 
-float distanceEstimator(const glm::vec3& p0) {
+float distanceEstimator(glm::vec3 p) {
+
+	glm::vec3 spherePos = { 0.0f, 0.0f, 0.0f };
+
+	return glm::length(p - spherePos) - 1.0f;
+}
+
+float distanceEstimatork(const glm::vec3& p0) {
 	glm::vec4 p(p0, 1.0f);
 
-	for (int i = 0; i < 8; ++i)
-	{
+	for (int i = 0; i < 8; ++i) {
+
 		glm::vec3 xyz = glm::mod(glm::vec3(p) - 1.0f, 2.0f) - 1.0f;
 		p = glm::vec4(xyz, p.w);
 
-		p *= 1.4f / glm::dot(xyz, xyz);
+		p *= 4.0f / 3.0f / glm::dot(xyz, xyz);
 	}
 
 	return glm::length(glm::vec2(p.x, p.z) / p.w) * 0.25f;
 }
 
-void rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& params) {
+glm::vec3 rmGetNormal(glm::vec3& pos) {
 
-	glm::vec3 initSource = ray.src;
+	float e = 0.001f;
+	glm::vec3 n = {
+		distanceEstimator(pos + glm::vec3(e, 0.0f, 0.0f)) - distanceEstimator(pos - glm::vec3(e, 0.0f, 0.0f)),
+		distanceEstimator(pos + glm::vec3(0.0f, e, 0.0f)) - distanceEstimator(pos - glm::vec3(0.0f, e, 0.0f)),
+		distanceEstimator(pos + glm::vec3(0.0f, 0.0f, e)) - distanceEstimator(pos - glm::vec3(0.0f, 0.0f, e)) };
+
+	return glm::normalize(n);
+
+}
+
+void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri) {
 
 	float minSceneDist = FLT_MAX;
 	float minRayLength = FLT_MAX;
 
-	glm::vec3 pointCol = { 0.7f, 0.0f, 0.0f };
+	//bool causticsReceiver = false;
+	//bool refracted = false;
 
-	for (int iter = 0; iter < params.rmMaxSteps; iter++) {
+	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
-		minSceneDist = distanceEstimator(ray.src);
 
-		if (minSceneDist < params.rmNearPlane) {
+		thread_local std::mt19937 rng(std::random_device{}());
+		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
-			rayState.hit = true;
-			rayState.rmMinLength = minSceneDist;
-			rayState.rmSteps = iter;
-			rayState.throughput *= pointCol;
-			rayState.hitPos = ray.src + ray.dir * minSceneDist;
-
-			return;
+		if (!rayState.active) {
+			break;
 		}
 
-		minRayLength = glm::min(minRayLength, minSceneDist);
-		ray.src += ray.dir * minSceneDist;
+		for (int iter = 0; iter < params.rmMaxSteps; iter++) {
 
-		rayState.rmSteps++;
+			minSceneDist = distanceEstimator(ray.src);
 
-		if (minSceneDist > params.rmFarPlane) {
-			rayState.rmMinLength = minRayLength;
-			//rayState.rmSteps = maxSteps;
+			if (params.rmPBR) {
+				float closestT = minSceneDist;
 
-			//rayState.throughput *= 0.0f;
+				rayState.hit = false;
+				rayState.triIdx = UINT32_MAX;
 
-			return;
+				traceRay(data.embreeBVH, ray, rayState, closestT);
+
+				if (rayState.triIdx != UINT32_MAX && rayState.active) {
+
+					float emissionVal = (data.tris[rayState.triIdx].emissionCol.x + data.tris[rayState.triIdx].emissionCol.y + data.tris[rayState.triIdx].emissionCol.z) / 3.0f;
+					bool isEmissive = data.tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
+
+					if (isEmissive) {
+						rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+
+						rayState.active = false;
+						break;
+					}
+				}
+			}
+
+			if (minSceneDist < params.rmNearPlane) {
+
+				rayState.hit = true;
+				rayState.rmMinLength = minSceneDist;
+				rayState.rmSteps = iter;
+				rayState.hitPos = ray.src + ray.dir * minSceneDist;
+
+				rayState.rmNormal = rmGetNormal(rayState.hitPos);
+
+				ray.src = rayState.hitPos + rayState.rmNormal * 0.001f;
+
+				if (params.rmPBR) {
+					bool isSpecular = false;
+
+					if (!rayState.isRefraction) {
+						isSpecular = rmSpecularLighting(ray, rayState, rayState.rmNormal, params.rmRoughness, params.rmIOR, params.rmMetalness);
+					}
+
+					if (!isSpecular) {
+
+						if (dist(rng) < params.rmRefraction) {
+
+							rmRefractionLighting(ray, rayState, rayState.rmNormal, params.rmIOR, params.rmAbsorption, params.rmAbsorptionCol);
+						}
+						else {
+
+							rayState.throughput *= rayState.rmNormal;
+
+							rmDiffuseLighting(ray, rayState, rayState.rmNormal);
+						}
+					}
+					else {
+						rayState.throughput *= params.rmSpecularCol;
+					}
+				}
+
+				break;
+			}
+
+			minRayLength = glm::min(minRayLength, minSceneDist);
+			ray.src += ray.dir * minSceneDist;
+
+			rayState.rmSteps++;
+			//rayState.hitPos = hitPos;
+
+			if (minSceneDist > params.rmFarPlane) {
+				rayState.rmMinLength = minRayLength;
+
+				rayState.active = false;
+
+				if (params.rmPBR) {
+					rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
+				}
+
+				break;
+			}
 		}
 	}
 }
@@ -716,13 +935,12 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 	debugRays.clear();
 
 	bool causticsReceiver = false;
-
 	bool refracted = false;
 
 	PathRay originalRay = ray;
 
 	if (params.rayMarcher) {
-		rayMarchingLogic(ray, rayState, params);
+		rayMarchingLogic(ray, rayState, params, data, hdri);
 
 		if (params.pathTracer) {
 			ray = originalRay;
@@ -771,7 +989,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 					} while (glm::length(randDir) > 1.0f || glm::length(randDir) < 0.001f);
 
 					ray.dir = glm::normalize(randDir);
-					ray.invDir = 1.0f / ray.dir;
+					//ray.invDir = 1.0f / ray.dir;
 
 					rayState.throughput *= data.tris[rayState.triIdx].volumeCol;
 
@@ -881,7 +1099,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 				break;
 			}
 
-			ray.invDir = 1.0f / ray.dir;
+			//ray.invDir = 1.0f / ray.dir;
 		}
 	}
 
@@ -924,7 +1142,7 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 
 			rays[index].src = src;
 			rays[index].dir = dir;
-			rays[index].invDir = 1.0f / dir;
+			//rays[index].invDir = 1.0f / dir;
 			rayStates[index].hitPos = src;
 			rayStates[index].col = glm::vec3(0.0f);
 			rayStates[index].causticsCol = glm::vec3(0.0f);
@@ -939,6 +1157,7 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 
 			rayStates[index].rmMinLength = FLT_MAX;
 			rayStates[index].rmSteps = 0;
+			rayStates[index].rmNormal = glm::vec3(0.0f);
 		}
 	}
 }
@@ -1009,9 +1228,11 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 				if (params.rayMarcher) {
 
-					float val = float(data.rayStates[i].rmSteps) / 1000.0f;
+					if (!params.rmPBR) {
+						float val = float(data.rayStates[i].rmSteps) / 1000.0f;
 
-					data.accumBuffer[i] += val;
+						data.accumBuffer[i] += val;
+					}
 				}
 
 				data.causticsBuffer[i] += data.rayStates[i].causticsCol;

@@ -7,6 +7,7 @@
 #include <globalParams.h>
 #include <camera.h>
 #include <model.h>
+#include <renderer.h>
 
 struct UI {
 
@@ -14,7 +15,7 @@ struct UI {
 	static const int avgMsIdxAmount = 50;
 	float avgMsFrames[avgMsIdxAmount] = { 0.0f };
 
-	void logic(Params& params, Data& data, PTCam& myCam);
+	void logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt);
 
 	enum ExtraParams {
 		LogSlider

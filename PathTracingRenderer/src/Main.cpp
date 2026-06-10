@@ -280,7 +280,7 @@ void selectModel() {
 		selecRayState.hit = false;
 		selecRayState.triIdx = UINT32_MAX;
 
-		pt.traverseFlatBVH(selecRay, selecRayState, closestT, data.tris, globalCompactBVH);
+		pt.traceRay(data.embreeBVH, selecRay, selecRayState, closestT);
 
 		for (size_t i = 0; i < data.models.size(); i++) {
 			data.models[i].selected = false;
@@ -300,7 +300,7 @@ int main() {
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	ObjImporter scene{ "models/scene.obj", data,
+	/*ObjImporter scene{ "models/scene.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
 		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
@@ -318,7 +318,7 @@ int main() {
 
 	ObjImporter dragon{ "models/dragon.obj", data,
 		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.5f, 0.6f, 0.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };
+		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };*/
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -327,9 +327,9 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	/*ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
+	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
+		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
@@ -338,10 +338,10 @@ int main() {
 	data.rayStates.resize(screen.resX * screen.resY);
 
 	std::cout << "Build BVH Tree..." << '\n';
-	createFlatBVH();
+	/*createFlatBVH();
 	if (!globalBVH.empty()) {
 		pt.flattenBVH(0, globalBVH, globalCompactBVH);
-	}
+	}*/
 
 	//data.embreeBVH.convertToEmbree(data.tris);
 	data.embreeBVH.build(data.tris);
@@ -394,6 +394,8 @@ int main() {
 
 	Image hdri = LoadImage("textures/HDRI.hdr");
 	ImageFormat(&hdri, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
+
+	pt.hdriBrigthestValue(hdri, params.hdriBrigthest);
 
 	rlImGuiSetup(true);
 
@@ -543,7 +545,7 @@ int main() {
 		EndMode3D();
 
 		params.shouldSample = true;
-		ui.logic(params, data, myCam);
+		ui.logic(params, data, myCam, pt);
 
 		rlImGuiEnd();
 

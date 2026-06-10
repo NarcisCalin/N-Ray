@@ -34,6 +34,7 @@ struct Params {
 	int res = 512;
 
 	int maxBounces = 5;
+	int prevMaxBounces = maxBounces;
 	int maxSamples = 50000;
 	int raysPerPixel = 1;
 	int currentSample = 0;
@@ -43,6 +44,8 @@ struct Params {
 	float blur = 1.0f;
 	float exposure = 1.0f;
 	float contrast = 0.8f;
+	float hdriThreshold = 0.0f;
+	float hdriBrigthest = 0.0f;
 
 	float hdriRotation = 0.0f;
 
@@ -86,4 +89,21 @@ struct Params {
 	int rmMaxSteps = 1000;
 	float rmNearPlane = 0.001f;
 	float rmFarPlane = 1000.0f;
+
+	glm::vec3 rmAlbedo = {0.7f, 0.7f, 0.7f};
+	glm::vec3 rmSpecularCol = {1.0f, 1.0f, 1.0f};
+	glm::vec3 rmEmissionCol = {0.0f, 0.0f, 0.0f};
+	glm::vec3 rmAbsorptionCol = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 rmVolumeCol = { 0.0f, 0.0f, 0.0f };
+
+	float rmIOR = 1.5f;
+	float rmRoughness = 0.3f;
+	float rmEmissionIntensity = 0.0f;
+	float rmRefraction = 0.0f;
+	float rmAbsorption = 0.0f;
+	float rmVolume = 0.0f;
+	float rmDensity = 0.0f;
+	float rmMetalness = 0.0f;
+
+	bool rmPBR = true;
 };

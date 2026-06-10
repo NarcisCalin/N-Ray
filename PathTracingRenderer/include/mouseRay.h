@@ -33,7 +33,7 @@ struct MouseRay {
 
 		mRay.src = src;
 		mRay.dir = dir;
-		mRay.invDir = 1.0f / dir;
+		//mRay.invDir = 1.0f / dir;
 
 		return mRay;
 	}

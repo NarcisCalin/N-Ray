@@ -11,7 +11,6 @@
 struct PathRay {
 	glm::vec3 src;
 	glm::vec3 dir;
-	glm::vec3 invDir;
 };
 
 struct PathRayState {
@@ -19,16 +18,17 @@ struct PathRayState {
 	glm::vec3 col = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 causticsCol = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 throughput = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 rmNormal = { 0.0f, 0.0f, 0.0f };
 	float length = FLT_MAX;
 	uint32_t triIdx = UINT32_MAX;
+	float rmMinLength = FLT_MAX;
+	int rmSteps = 0;
+
 	bool hit = false;
 	bool active = true;
 	bool isRefraction = false;
 	bool isCaustic = false;
 	bool isVolume = false;
-
-	float rmMinLength = FLT_MAX;
-	int rmSteps = 0;
 };
 
 struct DebugRay {
@@ -45,9 +45,15 @@ struct PathTracer {
 
 	bool RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t);
 
-	bool rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT);
+	//bool rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT);
+
+	//void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes);
+
+	//void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
 
 	void diffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, std::vector<Tri>& tris);
+
+	void rmDiffuseLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal);
 
 	const float airIOR = 1.0f;
 
@@ -55,11 +61,11 @@ struct PathTracer {
 
 	bool specularLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, std::vector<Tri>& tris);
 
+	bool rmSpecularLighting(PathRay& ray, PathRayState& rayState, glm::vec3& normal, float& roughness, float& IOR, float& metalness);
+
 	void refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris);
 
-	void flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes);
-
-	void traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH);
+	void rmRefractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, float& IOR, float& absorption, glm::vec3& absorptionCol);
 
 	bool traceRay(const EmbreeBVH& bvh, const PathRay& ray, PathRayState& rayState, float& closestT);
 
@@ -76,6 +82,10 @@ struct PathTracer {
 	glm::vec3 hdriLogic(PathRay& ray, Params& params, Image& hdri);
 
 	glm::vec3 environmentLogic(PathRay& ray, Params& params, Image& hdri);
+
+	void hdriBrigthestValue(Image& hdri, float& maxVal);
+
+	void rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri);
 
 	std::vector<DebugRay> rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, bool debug = false);
 

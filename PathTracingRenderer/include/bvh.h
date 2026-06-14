@@ -99,8 +99,10 @@ struct EmbreeBVH {
 
 struct BVH;
 struct CompactBVH;
+struct CompactBVHGPU;
 extern std::vector<BVH> globalBVH;
 extern std::vector<CompactBVH> globalCompactBVH;
+extern std::vector<CompactBVHGPU> globalCompactBVHGPU;
 
 struct BVH {
 	glm::vec3 min = glm::vec3(0.0f);
@@ -109,20 +111,20 @@ struct BVH {
 
 	uint32_t children[2] = { UINT32_MAX, UINT32_MAX };
 
-	uint32_t startIndex = 0;
+	uint32_t indexData = 0;
 	uint32_t endIndex = 0;
 	uint32_t next = 0;
 
-	BVH(uint32_t startIndex, uint32_t endIndex, std::vector<Tri>& tris, std::vector<BVH>& globalBVH) :
-		startIndex(startIndex), endIndex(endIndex) {
+	BVH(uint32_t indexData, uint32_t endIndex, std::vector<Tri>& tris, std::vector<BVH>& globalBVH) :
+		indexData(indexData), endIndex(endIndex) {
 
 		calculateAABB(tris);
 		avgSplit(tris);
 
 		uint32_t count = 0;
-		if (endIndex >= startIndex && startIndex < tris.size()) {
+		if (endIndex >= indexData && indexData < tris.size()) {
 			uint32_t clampedEnd = std::min<uint32_t>(endIndex, uint32_t(tris.size() - 1));
-			count = clampedEnd - startIndex + 1;
+			count = clampedEnd - indexData + 1;
 		}
 
 		if (count >= 3) {
@@ -135,7 +137,7 @@ struct BVH {
 		: min(0.0f),
 		max(0.0f),
 		splitPoint(0.0f),
-		startIndex(0),
+		indexData(0),
 		endIndex(0),
 		next(0) {
 
@@ -147,10 +149,10 @@ struct BVH {
 		min = glm::vec3(std::numeric_limits<float>::max());
 		max = glm::vec3(std::numeric_limits<float>::lowest());
 
-		if (startIndex > endIndex || startIndex >= tris.size()) return;
+		if (indexData > endIndex || indexData >= tris.size()) return;
 
 		uint32_t clampedEnd = std::min<uint32_t>(endIndex, uint32_t(tris.size() - 1));
-		for (uint32_t i = startIndex; i <= clampedEnd; ++i) {
+		for (uint32_t i = indexData; i <= clampedEnd; ++i) {
 			min = glm::min(min, tris[i].min);
 			max = glm::max(max, tris[i].max);
 		}
@@ -159,13 +161,13 @@ struct BVH {
 	void avgSplit(std::vector<Tri>& tris) {
 		splitPoint = glm::vec3(0.0f);
 
-		if (startIndex > endIndex || startIndex >= tris.size()) return;
+		if (indexData > endIndex || indexData >= tris.size()) return;
 
 		uint32_t clampedEnd = std::min<uint32_t>(endIndex, uint32_t(tris.size() - 1));
-		uint32_t count = clampedEnd - startIndex + 1;
+		uint32_t count = clampedEnd - indexData + 1;
 		if (count == 0) return;
 
-		for (uint32_t i = startIndex; i <= clampedEnd; ++i) {
+		for (uint32_t i = indexData; i <= clampedEnd; ++i) {
 			splitPoint += tris[i].center;
 		}
 
@@ -179,9 +181,9 @@ struct BVH {
 		if (extent.y > extent.x) axis = 1;
 		if (extent.z > extent[axis]) axis = 2;
 
-		uint32_t aIdx = startIndex;
+		uint32_t aIdx = indexData;
 
-		for (uint32_t i = startIndex; i <= endIndex && i < tris.size(); ++i) {
+		for (uint32_t i = indexData; i <= endIndex && i < tris.size(); ++i) {
 			bool isChildA = tris[i].center[axis] < splitPoint[axis];
 
 			if (isChildA) {
@@ -199,7 +201,7 @@ struct BVH {
 			}
 		}
 
-		uint32_t leftCount = (aIdx > startIndex) ? (aIdx - startIndex) : 0;
+		uint32_t leftCount = (aIdx > indexData) ? (aIdx - indexData) : 0;
 		uint32_t rightCount = (endIndex >= aIdx && aIdx < tris.size()) ? (endIndex - aIdx + 1) : 0;
 
 		if (leftCount == 0 || rightCount == 0) {
@@ -208,7 +210,7 @@ struct BVH {
 
 		uint32_t childAIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
-		globalBVH[childAIdx] = BVH(startIndex, aIdx - 1, tris, globalBVH);
+		globalBVH[childAIdx] = BVH(indexData, aIdx - 1, tris, globalBVH);
 
 		uint32_t childBIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
@@ -240,10 +242,15 @@ struct CompactBVH {
 	glm::vec3 min;
 	glm::vec3 max;
 
-	union {
-		uint32_t startIndex;
-		uint32_t missLink;
-	};
-
+	uint32_t indexData;
 	uint32_t triCount;
+};
+
+struct CompactBVHGPU {
+	glm::vec4 min;
+	glm::vec4 max;
+	uint32_t indexData;
+	uint32_t triCount;
+	uint32_t padding0 = 0;
+	uint32_t padding1 = 0;
 };

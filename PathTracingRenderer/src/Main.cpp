@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <glad/glad.h>
 #include <raylib.h>
 #include <fstream>
 #include <sstream>
@@ -21,6 +22,7 @@
 #include <globalIds.h>
 #include <globalParams.h>
 #include <screenStartup.h>
+#include <material.h>
 #include <tri.h>
 #include <bvh.h>
 #include <renderer.h>
@@ -42,6 +44,7 @@ MouseRay mRayGen;
 
 std::vector<BVH> globalBVH;
 std::vector<CompactBVH> globalCompactBVH;
+std::vector<CompactBVHGPU> globalCompactBVHGPU;
 
 uint32_t globalTriId = 0;
 uint32_t globalModelId = 0;
@@ -86,6 +89,9 @@ struct AreaLight {
 	Tri a;
 	Tri b;
 
+	PTMaterial areaLightMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {emissionCol}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
+		1.0f, 1.0f, emissionStrength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
 	AreaLight(glm::vec3 pos, glm::vec3 emissionCol, float emissionStrength, float size)
 
 		: pos(pos),
@@ -94,11 +100,8 @@ struct AreaLight {
 		size(size),
 
 		a{
-			{0.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 0.0f},
-			{emissionCol},
-			{0.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 0.0f},
+
+			areaLightMat,
 
 			{-size + pos.x, -size + pos.y, pos.z},
 			{size + pos.x, size + pos.y, pos.z},
@@ -108,23 +111,11 @@ struct AreaLight {
 			{0.0f, 0.0f, -1.0f},
 			{0.0f, 0.0f, -1.0f},
 
-			1.0f,
-			1.0f,
-			emissionStrength,
-			0.0f,
-			0.0f,
-			0.0f,
-			0.0f,
-			0.0f,
 			false
 		},
 
 		b{
-			{0.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 0.0f},
-			{emissionCol},
-			{0.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 0.0f},
+			areaLightMat,
 
 			{size + pos.x, size + pos.y, pos.z},
 			{-size + pos.x, -size + pos.y, pos.z},
@@ -134,14 +125,6 @@ struct AreaLight {
 			{0.0f, 0.0f, -1.0f},
 			{0.0f, 0.0f, -1.0f},
 
-			1.0f,
-			1.0f,
-			emissionStrength,
-			0.0f,
-			0.0f,
-			0.0f,
-			0.0f,
-			0.0f,
 			false
 		} {
 
@@ -168,9 +151,9 @@ void sortByEmission() {
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
 
-		float emVal = (data.tris[i].emissionCol.x + data.tris[i].emissionCol.y + data.tris[i].emissionCol.z) / 3.0f;
+		float emVal = (data.tris[i].mat.emissionCol.x + data.tris[i].mat.emissionCol.y + data.tris[i].mat.emissionCol.z) / 3.0f;
 
-		float totalEmission = data.tris[i].emissionIntensity * emVal;
+		float totalEmission = data.tris[i].mat.emissionIntensity * emVal;
 
 		triMap.push_back({ totalEmission, i });
 	}
@@ -193,9 +176,9 @@ void sortByEmission() {
 void findEmissiveAmount() {
 	for (size_t i = 0; i < data.tris.size(); i++) {
 
-		float emVal = (data.tris[i].emissionCol.x + data.tris[i].emissionCol.y + data.tris[i].emissionCol.z) / 3.0f;
+		float emVal = (data.tris[i].mat.emissionCol.x + data.tris[i].mat.emissionCol.y + data.tris[i].mat.emissionCol.z) / 3.0f;
 
-		float totalEmission = data.tris[i].emissionIntensity * emVal;
+		float totalEmission = data.tris[i].mat.emissionIntensity * emVal;
 
 		if (totalEmission == 0.0f) {
 			break;
@@ -217,7 +200,7 @@ void traceDebugRay(Image& hdri) {
 		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
 		PathRayState mRayState = mRayGen.mouseRayState();
 
-		debugRays = pt.rayLogic(mRay, mRayState, params, data, hdri, true);
+		debugRays = pt.rayLogic(mRay, mRayState, params, data, hdri, myCam, true);
 	}
 
 	for (size_t i = 0; i < debugRays.size(); i++) {
@@ -260,7 +243,7 @@ void setDofDist(Image& hdri) {
 		pt.traceRay(data.embreeBVH, dofRay, dofRayState, closestT);
 	}
 	else if (params.rayMarcher) {
-		pt.rayLogic(dofRay, dofRayState, params, data, hdri);
+		pt.rayLogic(dofRay, dofRayState, params, data, hdri, myCam);
 	}
 
 	if (!dofRayState.hit) {
@@ -295,30 +278,39 @@ void selectModel() {
 int main() {
 
 	SetConfigFlags(FLAG_WINDOW_ALWAYS_RUN);
-	SetTraceLogLevel(LOG_NONE);
+	//SetTraceLogLevel(LOG_NONE);
 
 	InitWindow(params.screenSize.x, params.screenSize.y, "Path Tracing");
 
 	std::cout << "Loading Scene..." << '\n';
-	/*ObjImporter scene{ "models/scene.obj", data,
-		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
 
-	ObjImporter glass{ "models/sceneGlass.obj", data,
-		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 15.0f, 0.0f , true };
+	PTMaterial diffuseWhiteMat{ {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-	ObjImporter metal{ "models/sceneMetal.obj", data,
-		{0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, true };
+	PTMaterial redGlossyMat{ {0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 0.15f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f };
 
-	ObjImporter red{ "models/sceneRed.obj", data,
-		{0.7f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 0.15f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, true };
+	PTMaterial metalMat{ {0.9f, 0.9f, 0.9f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f };
 
-	ObjImporter dragon{ "models/dragon.obj", data,
-		{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.5f, 0.6f, 0.0f},{1.0f, 1.0f, 1.0f},
-		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f , true };*/
+	PTMaterial glassMat{ {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{1.0f, 1.0f, 1.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 15.0f, 0.0f };
+
+	PTMaterial purpleGlassMat{ {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.5f, 0.6f, 0.0f},{1.0f, 1.0f, 1.0f},
+		1.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 15.0f, 0.0f };
+
+	PTMaterial emissiveWhiteMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
+		1.0f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
+	/*ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
+
+	ObjImporter glass{ "models/sceneGlass.obj", data, glassMat, true };
+
+	ObjImporter metal{ "models/sceneMetal.obj", data, metalMat, true };
+
+	ObjImporter red{ "models/sceneRed.obj", data, redGlossyMat, true };
+
+	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };*/
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -327,23 +319,38 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data,
-		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
-		1.5f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };
+	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data, emissiveWhiteMat, false };
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
-	screen.initScreen(params.res, data.frameBuffer, data.accumBuffer, data.causticsBuffer);
+	screen.initScreen(params.res, data);
 	data.rays.resize(screen.resX * screen.resY);
 	data.rayStates.resize(screen.resX * screen.resY);
 
+	struct alignas(16) CompactBVHGPU {
+		glm::vec3 min;
+		uint32_t indexData;
+
+		glm::vec3 max;
+		uint32_t triCount;
+	};
+
 	std::cout << "Build BVH Tree..." << '\n';
-	/*createFlatBVH();
+	createFlatBVH();
 	if (!globalBVH.empty()) {
 		pt.flattenBVH(0, globalBVH, globalCompactBVH);
-	}*/
 
-	//data.embreeBVH.convertToEmbree(data.tris);
+		globalCompactBVHGPU.resize(globalCompactBVH.size());
+
+		for (size_t i = 0; i < globalCompactBVH.size(); i++) {
+			globalCompactBVHGPU[i].min = glm::vec4{ globalCompactBVH[i].min, 0 };
+			globalCompactBVHGPU[i].indexData = globalCompactBVH[i].indexData;
+
+			globalCompactBVHGPU[i].max = glm::vec4{ globalCompactBVH[i].max, 0 };
+			globalCompactBVHGPU[i].triCount = globalCompactBVH[i].triCount;
+		}
+	}
+
 	data.embreeBVH.build(data.tris);
 
 	//sortByEmission();
@@ -361,7 +368,7 @@ int main() {
 
 	for (size_t i = 0; i < data.tris.size(); i++) {
 
-		float totalRefraction = data.tris[i].refraction;
+		float totalRefraction = data.tris[i].mat.refraction;
 
 		if (totalRefraction > 0.0f) {
 			refractive.push_back(uint32_t(i));
@@ -392,10 +399,19 @@ int main() {
 
 	Texture2D render = LoadTextureFromImage(ptData);
 
-	Image hdri = LoadImage("textures/HDRI.hdr");
-	ImageFormat(&hdri, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
+	params.hdri = LoadImage("textures/HDRI.hdr");
+	ImageFormat(&params.hdri, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
 
-	pt.hdriBrigthestValue(hdri, params.hdriBrigthest);
+	pt.hdriBrigthestValue(params.hdri, params.hdriBrigthest);
+
+	pt.uploadTriangles(data);
+
+	pt.loadHDRIToGPU(params);
+
+	pt.initCompute(screen.resX, screen.resY);
+
+	pt.initTriangleSSBO(data.trisGPU);
+	pt.initBVHSSBO(globalCompactBVHGPU);
 
 	rlImGuiSetup(true);
 
@@ -420,7 +436,7 @@ int main() {
 
 		if (prevRes != params.res) {
 			prevRes = params.res;
-			screen.initScreen(params.res, data.frameBuffer, data.accumBuffer, data.causticsBuffer);
+			screen.initScreen(params.res, data);
 			data.rays.clear();
 
 			UnloadTexture(render);
@@ -437,6 +453,8 @@ int main() {
 
 			data.rays.resize(screen.resX * screen.resY);
 			data.rayStates.resize(screen.resX * screen.resY);
+
+			pt.createComputeTexture(screen.resX, screen.resY);
 		}
 
 		if (params.enableSampling && !params.isMouseHoveringUI) {
@@ -444,7 +462,7 @@ int main() {
 		}
 
 		if (myCam.clickDof && IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
-			setDofDist(hdri);
+			setDofDist(params.hdri);
 			params.shouldSample = false;
 		}
 
@@ -460,8 +478,10 @@ int main() {
 
 		cam3D.fovy = myCam.fovV;
 
-		if (params.render) {
-			pt.render(data, myCam, screen, params, render, hdri);
+		if (!params.enableGPU) {
+			if (params.render) {
+				pt.render(data, myCam, screen, params, render, params.hdri);
+			}
 		}
 
 		BeginMode3D(cam3D);
@@ -469,7 +489,7 @@ int main() {
 		//rlDisableBackfaceCulling();
 
 		if (params.enableDebugRay) {
-			traceDebugRay(hdri);
+			traceDebugRay(params.hdri);
 		}
 
 		if (!params.render) {
@@ -509,7 +529,7 @@ int main() {
 
 					float intensity = (light < 0.9f) ? (light * 0.9f) : (light * light);
 
-					glm::vec3 col = tri.albedo * intensity;
+					glm::vec3 col = tri.mat.albedo * intensity;
 
 					Color color = {
 						(unsigned char)(fastClamp01(col.x) * 255),
@@ -543,6 +563,10 @@ int main() {
 		}*/
 
 		EndMode3D();
+
+		if (params.enableGPU) {
+			pt.runShader(params.screenSize, screen.resX, screen.resY, myCam, params, screen);
+		}
 
 		params.shouldSample = true;
 		ui.logic(params, data, myCam, pt);
@@ -585,7 +609,11 @@ int main() {
 	}
 
 	UnloadTexture(render);
-	UnloadImage(hdri);
+	UnloadImage(params.hdri);
+
+	glDeleteProgram(pt.computeProgram);
+	glDeleteTextures(1, &pt.accumTextureID);
+	glDeleteTextures(1, &pt.finalTextureID);
 
 	CloseWindow();
 }

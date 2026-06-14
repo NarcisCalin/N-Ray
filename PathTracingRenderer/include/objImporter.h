@@ -5,6 +5,8 @@
 #include <memory>
 #include <model.h>
 #include <globalIds.h>
+#include <material.h>
+
 
 struct ObjImporter {
 
@@ -14,19 +16,7 @@ struct ObjImporter {
 	ObjImporter(
 		std::string fileName,
 		Data& data,
-		glm::vec3 albedo,
-		glm::vec3 specularCol,
-		glm::vec3 emissionCol,
-		glm::vec3 absorptionCol,
-		glm::vec3 volumeCol,
-		float IOR,
-		float roughness,
-		float emissionIntensity,
-		float refraction,
-		float absorption,
-		float volume,
-		float density,
-		float metalness,
+		PTMaterial& mat,
 		bool doubleSided
 	) {
 		std::ifstream file(fileName);
@@ -40,18 +30,7 @@ struct ObjImporter {
 
 		std::string line;
 
-		data.models.push_back({
-					albedo, specularCol, emissionCol, absorptionCol, volumeCol,
-					IOR,
-					roughness,
-					emissionIntensity,
-					refraction,
-					absorption,
-					volume,
-					density,
-					metalness,
-					doubleSided
-			});
+		data.models.push_back({ mat, doubleSided });
 
 		while (std::getline(file, line)) {
 			std::stringstream ss(line);
@@ -143,11 +122,7 @@ struct ObjImporter {
 						cN = normals[nC];
 
 					data.tris.push_back({
-						albedo,
-						specularCol,
-						emissionCol,
-						absorptionCol,
-						volumeCol,
+						mat,
 
 						vertices[iA] * sceneScale,
 						vertices[iB] * sceneScale,
@@ -157,14 +132,6 @@ struct ObjImporter {
 						bN,
 						cN,
 
-						IOR,
-						roughness,
-						emissionIntensity,
-						refraction,
-						absorption,
-						volume,
-						density,
-						metalness,
 						doubleSided
 						});
 

@@ -34,6 +34,7 @@
     <ClInclude Include="include\camera.h" />
     <ClInclude Include="include\globalIds.h" />
     <ClInclude Include="include\globalParams.h" />
+    <ClInclude Include="include\material.h" />
     <ClInclude Include="include\model.h" />
     <ClInclude Include="include\mouseRay.h" />
     <ClInclude Include="include\objImporter.h" />
@@ -43,6 +44,9 @@
     <ClInclude Include="include\screenStartup.h" />
     <ClInclude Include="include\tri.h" />
     <ClInclude Include="include\ui.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\ptShader.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -136,7 +140,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)external;$(ProjectDir)external\imgui;$(ProjectDir)external\imgui\backends;$(ProjectDir)external\glm;$(ProjectDir)external\rlImGui;$(ProjectDir)external\raylib\include;$(ProjectDir)external\embree\include\embree4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)external;$(ProjectDir)external\imgui;$(ProjectDir)external\imgui\backends;$(ProjectDir)external\glm;$(ProjectDir)external\rlImGui;$(ProjectDir)external\raylib\include;$(ProjectDir)external\embree\include\embree4;$(ProjectDir)external\gladOpenGL\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -164,7 +168,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)external;$(ProjectDir)external\imgui;$(ProjectDir)external\imgui\backends;$(ProjectDir)external\glm;$(ProjectDir)external\rlImGui;$(ProjectDir)external\raylib\include;$(ProjectDir)external\embree\include\embree4;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)external;$(ProjectDir)external\imgui;$(ProjectDir)external\imgui\backends;$(ProjectDir)external\glm;$(ProjectDir)external\rlImGui;$(ProjectDir)external\raylib\include;$(ProjectDir)external\embree\include\embree4;$(ProjectDir)external\gladOpenGL\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <Optimization>MaxSpeed</Optimization>

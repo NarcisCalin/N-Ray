@@ -4,7 +4,7 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <omp.h>
 
-bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
+bool PathTracer::rayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	const float EPSILON = 0.0000001f;
 
 	glm::vec3 edge1 = tri.b - tri.a;
@@ -49,8 +49,6 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 	return false;
 }
 
-// This code is not used anymore since I added Embree. If you enable it, add invDir glm::vec3 to the PathRay struct
-
 //bool PathTracer::rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT) {
 //	float tx1 = (boxMin.x - ray.src.x) * ray.invDir.x;
 //	float tx2 = (boxMax.x - ray.src.x) * ray.invDir.x;
@@ -73,37 +71,38 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 //	return tmax >= std::max(tmin, 0.0f) && tmin < maxT;
 //}
 
+// This code is used for GPU
 
-//void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
-//
-//	const BVH& buildNode = buildNodes[buildNodeIdx];
-//
-//	CompactBVH compactNode;
-//	compactNode.min = buildNode.min;
-//	compactNode.max = buildNode.max;
-//
-//	uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
-//
-//	flatNodes.push_back(compactNode);
-//
-//	if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
-//
-//		uint32_t count = buildNode.endIndex - buildNode.startIndex + 1;
-//
-//		flatNodes[myFlatIndex].triCount = count;
-//		flatNodes[myFlatIndex].startIndex = buildNode.startIndex;
-//
-//	}
-//	else {
-//		flatNodes[myFlatIndex].triCount = 0;
-//
-//		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
-//		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
-//
-//		flatNodes[myFlatIndex].missLink = static_cast<uint32_t>(flatNodes.size());
-//	}
-//}
-//
+void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& buildNodes, std::vector<CompactBVH>& flatNodes) {
+
+	const BVH& buildNode = buildNodes[buildNodeIdx];
+
+	CompactBVH compactNode;
+	compactNode.min = buildNode.min;
+	compactNode.max = buildNode.max;
+
+	uint32_t myFlatIndex = static_cast<uint32_t>(flatNodes.size());
+
+	flatNodes.push_back(compactNode);
+
+	if (buildNode.children[0] == UINT32_MAX && buildNode.children[1] == UINT32_MAX) {
+
+		uint32_t count = buildNode.endIndex - buildNode.indexData + 1;
+
+		flatNodes[myFlatIndex].triCount = count;
+		flatNodes[myFlatIndex].indexData = buildNode.indexData;
+
+	}
+	else {
+		flatNodes[myFlatIndex].triCount = 0;
+
+		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
+		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
+
+		flatNodes[myFlatIndex].indexData = static_cast<uint32_t>(flatNodes.size());
+	}
+}
+
 //void PathTracer::traverseFlatBVH(PathRay& ray, PathRayState& rayState, float& closestT, std::vector<Tri>& tris, const std::vector<CompactBVH>& flatBVH) {
 //
 //	uint32_t idx = 0;
@@ -120,7 +119,7 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 //				idx++;
 //			}
 //			else {
-//				idx = node.missLink;
+//				idx = node.indexData;
 //			}
 //			continue;
 //		}
@@ -130,9 +129,9 @@ bool PathTracer::RayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
 //			for (uint32_t i = 0; i < node.triCount; ++i) {
 //
 //				float t;
-//				const Tri& tri = tris[node.startIndex + i];
+//				const Tri& tri = tris[node.indexData + i];
 //
-//				if (RayIntersectsTriangle(ray, tri, t)) {
+//				if (rayIntersectsTriangle(ray, tri, t)) {
 //					if (t < closestT) {
 //						closestT = t;
 //						rayState.hit = true;
@@ -240,12 +239,12 @@ bool PathTracer::specularLighting(PathRay& ray, PathRayState& rayState, glm::vec
 
 	float r1 = dist(rng);
 	float r2 = dist(rng);
-	glm::vec3 microfacetNormal = sampleGGX(normal, tris[rayState.triIdx].roughness, r1, r2);
+	glm::vec3 microfacetNormal = sampleGGX(normal, tris[rayState.triIdx].mat.roughness, r1, r2);
 
-	float r0Dielectric = ((airIOR - tris[rayState.triIdx].IOR) / (airIOR + tris[rayState.triIdx].IOR));
+	float r0Dielectric = ((airIOR - tris[rayState.triIdx].mat.IOR) / (airIOR + tris[rayState.triIdx].mat.IOR));
 	r0Dielectric = r0Dielectric * r0Dielectric;
 
-	float r0 = glm::mix(r0Dielectric, 1.0f, tris[rayState.triIdx].metalness);
+	float r0 = glm::mix(r0Dielectric, 1.0f, tris[rayState.triIdx].mat.metalness);
 
 	float cosThetaI = glm::clamp(-glm::dot(ray.dir, microfacetNormal), 0.0f, 1.0f);
 	float rTheta = r0 + (1.0f - r0) * std::pow(1.0f - cosThetaI, 5.0f);
@@ -298,7 +297,7 @@ bool PathTracer::rmSpecularLighting(PathRay& ray, PathRayState& rayState, glm::v
 
 void PathTracer::refractionLighting(PathRay& ray, PathRayState& rayState, glm::vec3 normal, std::vector<Tri>& tris) {
 	float n1 = airIOR;
-	float n2 = tris[rayState.triIdx].IOR;
+	float n2 = tris[rayState.triIdx].mat.IOR;
 
 	float cosi = glm::dot(ray.dir, normal);
 
@@ -311,8 +310,8 @@ void PathTracer::refractionLighting(PathRay& ray, PathRayState& rayState, glm::v
 
 		float dist = glm::distance(rayState.hitPos, ray.src);
 
-		float absorptionFactor = dist * tris[rayState.triIdx].absorption;
-		glm::vec3 absorptionScale = glm::exp(-tris[rayState.triIdx].absorptionCol * absorptionFactor);
+		float absorptionFactor = dist * tris[rayState.triIdx].mat.absorption;
+		glm::vec3 absorptionScale = glm::exp(-tris[rayState.triIdx].mat.absorptionCol * absorptionFactor);
 
 		rayState.throughput *= absorptionScale;
 	}
@@ -508,7 +507,7 @@ glm::vec3 PathTracer::InterpolateNormal(PathRayState& rayState, std::vector<Tri>
 
 void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathRay& ray, PathRayState& rayState, Image& hdri) {
 
-	glm::vec3 diffuseAlbedo = data.tris[rayState.triIdx].albedo;
+	glm::vec3 diffuseAlbedo = data.tris[rayState.triIdx].mat.albedo;
 	glm::vec3 incomingThroughput = rayState.throughput;
 
 	if (bounce == 0) {
@@ -533,7 +532,6 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 		float distance = std::sqrt(distanceSq);
 
 		glm::vec3 rDir = diff / distance;
-		//glm::vec3 rInvDir = 1.0f / rDir;
 
 		glm::vec3 edge1 = rTri.b - rTri.a;
 		glm::vec3 edge2 = rTri.c - rTri.a;
@@ -554,7 +552,7 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 		float rClosestT = FLT_MAX;
 		traceRay(data.embreeBVH, rRay, rRayState, rClosestT);
 
-		if (rRayState.triIdx != UINT32_MAX && data.tris[rRayState.triIdx].refraction > 0.0f) {
+		if (rRayState.triIdx != UINT32_MAX && data.tris[rRayState.triIdx].mat.refraction > 0.0f) {
 
 			glm::vec3 actualDiff = rRayState.hitPos - rayState.hitPos;
 			float actualDistSq = glm::dot(actualDiff, actualDiff);
@@ -582,26 +580,26 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 					Tri& bTri = data.tris[rRayState.triIdx];
 					glm::vec3 rInterpolatedNormal = InterpolateNormal(rRayState, data.tris);
 
-					float emissionVal = (bTri.emissionCol.x + bTri.emissionCol.y + bTri.emissionCol.z) / 3.0f;
-					bool isEmissive = bTri.emissionIntensity > 0.0f && emissionVal > 0.0f;
+					float emissionVal = (bTri.mat.emissionCol.x + bTri.mat.emissionCol.y + bTri.mat.emissionCol.z) / 3.0f;
+					bool isEmissive = bTri.mat.emissionIntensity > 0.0f && emissionVal > 0.0f;
 
 					if (isEmissive) {
 						float originCosTheta = std::abs(glm::dot(data.tris[rayState.triIdx].normal, rDir));
 
-						rayState.causticsCol += incomingThroughput * rRayState.throughput * bTri.emissionCol * bTri.emissionIntensity *
+						rayState.causticsCol += incomingThroughput * rRayState.throughput * bTri.mat.emissionCol * bTri.mat.emissionIntensity *
 							weight * originCosTheta * (diffuseAlbedo / glm::pi<float>());
 
 						rayState.isCaustic = true;
 						break;
 					}
 
-					if (bTri.refraction < 0.1f) {
+					if (bTri.mat.refraction < 0.1f) {
 						break;
 					}
 
 					refractionLighting(rRay, rRayState, rInterpolatedNormal, data.tris);
 
-					rRayState.throughput *= bTri.refraction;
+					rRayState.throughput *= bTri.mat.refraction;
 				}
 
 				if (!rRayState.hit && !rRayState.isVolume) {
@@ -609,7 +607,7 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 
 					float originCosTheta = std::abs(glm::dot(data.tris[rayState.triIdx].normal, rDir));
 
-					rayState.causticsCol += incomingThroughput * rRayState.throughput * environmentLogic(rRay, params, hdri) *
+					rayState.causticsCol += incomingThroughput * rRayState.throughput * environmentLogic(rRay, params) *
 						weight * originCosTheta * (diffuseAlbedo / glm::pi<float>());
 
 					rayState.isCaustic = true;
@@ -620,7 +618,7 @@ void PathTracer::causticsSampling(int& bounce, Data& data, Params& params, PathR
 	}
 }
 
-glm::vec3 PathTracer::hdriLogic(PathRay& ray, Params& params, Image& hdri) {
+glm::vec3 PathTracer::hdriLogic(PathRay& ray, Params& params) {
 
 	float phi = glm::atan(ray.dir.y, ray.dir.x);
 
@@ -634,18 +632,18 @@ glm::vec3 PathTracer::hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 
 	float v = 1.0f - (theta + PI * 0.5f) / PI;
 
-	int x = (int)(u * hdri.width);
-	int y = (int)(v * hdri.height);
+	int x = (int)(u * params.hdri.width);
+	int y = (int)(v * params.hdri.height);
 
-	x = glm::clamp(x, 0, hdri.width - 1);
-	y = glm::clamp(y, 0, hdri.height - 1);
+	x = glm::clamp(x, 0, params.hdri.width - 1);
+	y = glm::clamp(y, 0, params.hdri.height - 1);
 
-	x = glm::clamp(x, 0, hdri.width - 1);
-	y = glm::clamp(y, 0, hdri.height - 1);
+	x = glm::clamp(x, 0, params.hdri.width - 1);
+	y = glm::clamp(y, 0, params.hdri.height - 1);
 
-	int pIdx = (y * hdri.width + x) * 3;
+	int pIdx = (y * params.hdri.width + x) * 3;
 
-	float* data = (float*)hdri.data;
+	float* data = (float*)params.hdri.data;
 
 	glm::vec3 pCol = {
 		data[pIdx + 0],
@@ -664,7 +662,7 @@ glm::vec3 PathTracer::hdriLogic(PathRay& ray, Params& params, Image& hdri) {
 }
 
 
-glm::vec3 PathTracer::environmentLogic(PathRay& ray, Params& params, Image& hdri) {
+glm::vec3 PathTracer::environmentLogic(PathRay& ray, Params& params) {
 
 	glm::vec3 skyCol(params.skyIntensity);
 
@@ -677,7 +675,7 @@ glm::vec3 PathTracer::environmentLogic(PathRay& ray, Params& params, Image& hdri
 	}
 
 	if (params.enableHDRI) {
-		skyCol = hdriLogic(ray, params, hdri);
+		skyCol = hdriLogic(ray, params);
 	}
 
 	if (params.enableSun) {
@@ -713,7 +711,6 @@ void PathTracer::hdriBrigthestValue(Image& hdri, float& maxVal) {
 			maxVal = glm::max(maxVal, val);
 		}
 	}
-
 }
 
 //void PathTracer::sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow) {
@@ -793,25 +790,35 @@ void PathTracer::hdriBrigthestValue(Image& hdri, float& maxVal) {
 //		//}
 //}
 
-float distanceEstimator(glm::vec3 p) {
+//float distanceEstimator(glm::vec3 p) {
+//	glm::vec4 p0(p, 1.0f);
+//
+//	for (int i = 0; i < 8; i++)
+//	{
+//		glm::vec3 xyz = glm::mod(glm::vec3(p0) - 1.0f, 2.0f) - 1.0f;
+//		p0.x = xyz.x;
+//		p0.y = xyz.y;
+//		p0.z = xyz.z;
+//
+//		p0 *= 1.2f / glm::dot(xyz, xyz);
+//	}
+//
+//	p0 /= p0.w;
+//
+//	return glm::abs(p0.x) * 0.25f;
+//
+//	/*glm::vec3 spherePos = { 0.0f, 0.0f, 0.0f };
+//
+//	return glm::length(p - spherePos) - 1.0f;*/
+//}
 
-	glm::vec3 spherePos = { 0.0f, 0.0f, 0.0f };
-
-	return glm::length(p - spherePos) - 1.0f;
-}
-
-float distanceEstimatork(const glm::vec3& p0) {
-	glm::vec4 p(p0, 1.0f);
-
-	for (int i = 0; i < 8; ++i) {
-
-		glm::vec3 xyz = glm::mod(glm::vec3(p) - 1.0f, 2.0f) - 1.0f;
-		p = glm::vec4(xyz, p.w);
-
-		p *= 4.0f / 3.0f / glm::dot(xyz, xyz);
+float distanceEstimator(glm::vec3 p0) {
+	glm::vec4 p = glm::vec4(p0, 1.0f);
+	for (int i = 0; i < 8; i++) {
+		p = glm::vec4(glm::mod(glm::vec3(p) - 1.0f, 2.0f) - 1.0f, p.w);
+		p *= 1.4f / glm::dot(glm::vec3(p), glm::vec3(p));
 	}
-
-	return glm::length(glm::vec2(p.x, p.z) / p.w) * 0.25f;
+	return (glm::length(glm::vec2(p.x, p.z) / p.w) * 0.25f);
 }
 
 glm::vec3 rmGetNormal(glm::vec3& pos) {
@@ -826,16 +833,21 @@ glm::vec3 rmGetNormal(glm::vec3& pos) {
 
 }
 
-void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri) {
+void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, PTCam& myCam) {
 
 	float minSceneDist = FLT_MAX;
 	float minRayLength = FLT_MAX;
 
+	bool isInside = false;
+
 	//bool causticsReceiver = false;
 	//bool refracted = false;
 
-	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
+	if (!params.rmPBR && params.rayMarcher) {
+		params.maxBounces = 0;
+	}
 
+	for (int bounce = 0; bounce <= params.maxBounces; bounce++) {
 
 		thread_local std::mt19937 rng(std::random_device{}());
 		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -844,9 +856,22 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 			break;
 		}
 
-		for (int iter = 0; iter < params.rmMaxSteps; iter++) {
+		bool volumeScattered = false;
+
+		int bounceSteps = glm::max(1, int((1.0f / glm::max(float(bounce), 1.0f)) * params.rmMaxSteps));
+
+		for (int iter = 0; iter < bounceSteps; iter++) {
 
 			minSceneDist = distanceEstimator(ray.src);
+
+			if (minSceneDist < 0.0f) {
+				isInside = true;
+			}
+			else {
+				isInside = false;
+			}
+
+			minSceneDist = glm::abs(minSceneDist);
 
 			if (params.rmPBR) {
 				float closestT = minSceneDist;
@@ -856,13 +881,43 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 
 				traceRay(data.embreeBVH, ray, rayState, closestT);
 
+				if (rayState.isVolume) {
+					float randomVal = std::max(dist(rng), 0.0001f);
+					float scatterDist = -std::log(randomVal) / params.rmMat.density;
+
+					// TODO: Add LOD here too
+
+					if (scatterDist < minSceneDist) {
+
+						rayState.hitPos = ray.src + ray.dir * scatterDist;
+						ray.src = rayState.hitPos;
+
+						glm::vec3 randDir;
+						do {
+							randDir = glm::vec3(dist(rng) * 2.0f - 1.0f, dist(rng) * 2.0f - 1.0f, dist(rng) * 2.0f - 1.0f);
+						} while (glm::length(randDir) > 1.0f || glm::length(randDir) < 0.001f);
+
+						ray.dir = glm::normalize(randDir);
+
+						rayState.throughput *= params.rmMat.volumeCol;
+
+						volumeScattered = true;
+
+						break;
+					}
+				}
+
 				if (rayState.triIdx != UINT32_MAX && rayState.active) {
 
-					float emissionVal = (data.tris[rayState.triIdx].emissionCol.x + data.tris[rayState.triIdx].emissionCol.y + data.tris[rayState.triIdx].emissionCol.z) / 3.0f;
-					bool isEmissive = data.tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
+					float emissionVal = (
+						data.tris[rayState.triIdx].mat.emissionCol.x +
+						data.tris[rayState.triIdx].mat.emissionCol.y +
+						data.tris[rayState.triIdx].mat.emissionCol.z) / 3.0f;
+
+					bool isEmissive = data.tris[rayState.triIdx].mat.emissionIntensity > 0.0f && emissionVal > 0.0f;
 
 					if (isEmissive) {
-						rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+						rayState.col += rayState.throughput * data.tris[rayState.triIdx].mat.emissionCol * data.tris[rayState.triIdx].mat.emissionIntensity;
 
 						rayState.active = false;
 						break;
@@ -870,7 +925,11 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 				}
 			}
 
-			if (minSceneDist < params.rmNearPlane) {
+			float camRayDistSq = glm::dot(ray.src - myCam.camPos, ray.src - myCam.camPos);
+
+			float lod = glm::mix(params.rmNearPlane, params.rmNearPlane * params.rmLodMinDistMult, camRayDistSq * params.rmLodAmount);
+
+			if (minSceneDist < lod) {
 
 				rayState.hit = true;
 				rayState.rmMinLength = minSceneDist;
@@ -881,28 +940,45 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 
 				ray.src = rayState.hitPos + rayState.rmNormal * 0.001f;
 
+				glm::vec3 orientedNormal = isInside ? -rayState.rmNormal : rayState.rmNormal;
+
 				if (params.rmPBR) {
 					bool isSpecular = false;
 
 					if (!rayState.isRefraction) {
-						isSpecular = rmSpecularLighting(ray, rayState, rayState.rmNormal, params.rmRoughness, params.rmIOR, params.rmMetalness);
+						isSpecular = rmSpecularLighting(ray, rayState, rayState.rmNormal, params.rmMat.roughness, params.rmMat.IOR, params.rmMat.metalness);
 					}
 
 					if (!isSpecular) {
 
-						if (dist(rng) < params.rmRefraction) {
+						bool isVolumeMaterial = dist(rng) < params.rmMat.volume;
 
-							rmRefractionLighting(ray, rayState, rayState.rmNormal, params.rmIOR, params.rmAbsorption, params.rmAbsorptionCol);
+						if (isVolumeMaterial) {
+							ray.src = rayState.hitPos - orientedNormal * 0.001f;
+
+							if (!isInside) {
+								rayState.isVolume = true;
+							}
+							else {
+								rayState.isVolume = false;
+							}
 						}
 						else {
 
-							rayState.throughput *= rayState.rmNormal;
+							if (dist(rng) < params.rmMat.refraction) {
 
-							rmDiffuseLighting(ray, rayState, rayState.rmNormal);
+								rmRefractionLighting(ray, rayState, rayState.rmNormal, params.rmMat.IOR, params.rmMat.absorption, params.rmMat.absorptionCol);
+							}
+							else {
+
+								rayState.throughput *= params.rmMat.albedo;
+
+								rmDiffuseLighting(ray, rayState, rayState.rmNormal);
+							}
 						}
 					}
 					else {
-						rayState.throughput *= params.rmSpecularCol;
+						rayState.throughput *= params.rmMat.specularCol;
 					}
 				}
 
@@ -921,16 +997,20 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 				rayState.active = false;
 
 				if (params.rmPBR) {
-					rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
+					rayState.col += rayState.throughput * environmentLogic(ray, params);
 				}
 
 				break;
 			}
 		}
+
+		if (!volumeScattered && rayState.hit == false && !rayState.active) {
+			break;
+		}
 	}
 }
 
-std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, bool debug) {
+std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, PTCam& myCam, bool debug) {
 
 	debugRays.clear();
 
@@ -940,7 +1020,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 	PathRay originalRay = ray;
 
 	if (params.rayMarcher) {
-		rayMarchingLogic(ray, rayState, params, data, hdri);
+		rayMarchingLogic(ray, rayState, params, data, hdri, myCam);
 
 		if (params.pathTracer) {
 			ray = originalRay;
@@ -976,7 +1056,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 			if (rayState.isVolume && rayState.triIdx != UINT32_MAX) {
 				float randomVal = std::max(dist(rng), 0.0001f);
-				float scatterDist = -std::log(randomVal) / data.tris[rayState.triIdx].density;
+				float scatterDist = -std::log(randomVal) / data.tris[rayState.triIdx].mat.density;
 
 				if (scatterDist < closestT) {
 
@@ -989,9 +1069,8 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 					} while (glm::length(randDir) > 1.0f || glm::length(randDir) < 0.001f);
 
 					ray.dir = glm::normalize(randDir);
-					//ray.invDir = 1.0f / ray.dir;
 
-					rayState.throughput *= data.tris[rayState.triIdx].volumeCol;
+					rayState.throughput *= data.tris[rayState.triIdx].mat.volumeCol;
 
 					continue;
 				}
@@ -1010,17 +1089,21 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 					ray.src = rayState.hitPos + data.tris[rayState.triIdx].normal * 0.001f;
 				}
 
-				float emissionVal = (data.tris[rayState.triIdx].emissionCol.x + data.tris[rayState.triIdx].emissionCol.y + data.tris[rayState.triIdx].emissionCol.z) / 3.0f;
-				bool isEmissive = data.tris[rayState.triIdx].emissionIntensity > 0.0f && emissionVal > 0.0f;
+				float emissionVal = (
+					data.tris[rayState.triIdx].mat.emissionCol.x +
+					data.tris[rayState.triIdx].mat.emissionCol.y +
+					data.tris[rayState.triIdx].mat.emissionCol.z) / 3.0f;
+
+				bool isEmissive = data.tris[rayState.triIdx].mat.emissionIntensity > 0.0f && emissionVal > 0.0f;
 
 				if (isEmissive) {
 
 					if (!refracted) {
-						rayState.col += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+						rayState.col += rayState.throughput * data.tris[rayState.triIdx].mat.emissionCol * data.tris[rayState.triIdx].mat.emissionIntensity;
 					}
 					else {
 						rayState.isCaustic = true;
-						rayState.causticsCol += rayState.throughput * data.tris[rayState.triIdx].emissionCol * data.tris[rayState.triIdx].emissionIntensity;
+						rayState.causticsCol += rayState.throughput * data.tris[rayState.triIdx].mat.emissionCol * data.tris[rayState.triIdx].mat.emissionIntensity;
 					}
 				}
 
@@ -1032,7 +1115,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 				if (!isSpecular) {
 
-					bool isVolumeMaterial = dist(rng) < data.tris[rayState.triIdx].volume;
+					bool isVolumeMaterial = dist(rng) < data.tris[rayState.triIdx].mat.volume;
 
 					if (isVolumeMaterial) {
 						ray.src = rayState.hitPos - orientedNormal * 0.001f;
@@ -1046,7 +1129,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 					}
 					else {
 
-						if (dist(rng) < data.tris[rayState.triIdx].refraction) {
+						if (dist(rng) < data.tris[rayState.triIdx].mat.refraction) {
 
 							if (causticsReceiver) {
 
@@ -1067,7 +1150,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 						}
 						else {
 
-							rayState.throughput *= data.tris[rayState.triIdx].albedo;
+							rayState.throughput *= data.tris[rayState.triIdx].mat.albedo;
 
 							// I came up with this algorithm for caustics. I made most of the logic and then I used the help of AI for the math
 							// This is only an experiment and it is not physically accurate
@@ -1081,7 +1164,7 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 					}
 				}
 				else {
-					rayState.throughput *= data.tris[rayState.triIdx].specularCol;
+					rayState.throughput *= data.tris[rayState.triIdx].mat.specularCol;
 				}
 			}
 
@@ -1089,17 +1172,15 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 				rayState.active = false;
 
 				if (!refracted) {
-					rayState.col += rayState.throughput * environmentLogic(ray, params, hdri);
+					rayState.col += rayState.throughput * environmentLogic(ray, params);
 				}
 				else {
 					rayState.isCaustic = true;
-					rayState.causticsCol += rayState.throughput * environmentLogic(ray, params, hdri);
+					rayState.causticsCol += rayState.throughput * environmentLogic(ray, params);
 				}
 
 				break;
 			}
-
-			//ray.invDir = 1.0f / ray.dir;
 		}
 	}
 
@@ -1142,7 +1223,6 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 
 			rays[index].src = src;
 			rays[index].dir = dir;
-			//rays[index].invDir = 1.0f / dir;
 			rayStates[index].hitPos = src;
 			rayStates[index].col = glm::vec3(0.0f);
 			rayStates[index].causticsCol = glm::vec3(0.0f);
@@ -1169,7 +1249,7 @@ void PathTracer::drawScreen(Screen& screen, Params& params, Data& data, int& wid
 #pragma omp parallel for
 	for (int i = 0; i < data.frameBuffer.size(); i++) {
 
-		glm::vec3 col = ((data.accumBuffer[i] * params.mainBufferIntensity) + (data.causticsBuffer[i] * ((params.causticsIntensity)))) * invSamples;
+		glm::vec3 col = ((data.accumBuffer[i] * params.mainBufferIntensity) + (data.causticsBuffer[i] * params.causticsIntensity)) * invSamples;
 
 		col *= params.exposure;
 
@@ -1219,7 +1299,7 @@ void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params
 
 #pragma omp parallel for
 			for (int i = 0; i < data.rays.size(); i++) {
-				rayLogic(data.rays[i], data.rayStates[i], params, data, hdri);
+				rayLogic(data.rays[i], data.rayStates[i], params, data, hdri, myCam);
 			}
 
 			for (size_t i = 0; i < data.frameBuffer.size(); i++) {

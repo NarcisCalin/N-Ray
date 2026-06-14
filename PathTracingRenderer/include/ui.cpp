@@ -16,55 +16,77 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 			params.shouldSample = false;
 		}
 
-		if (sliderHelper("Bounces Amount", "Amount of times a ray can bounce", sliderSize, params.maxBounces, 0, 50, params.rmPBR)) {
+		bool enableBounces = params.rmPBR || params.pathTracer ? true : false;
+		if (sliderHelper("Bounces Amount", "Amount of times a ray can bounce", sliderSize, params.maxBounces, 0, 50, enableBounces)) {
 			params.shouldSample = false;
 		}
-
 		if (sliderHelper("Max Samples", "Max amount of samples to render", sliderSize, params.maxSamples, 1, 50000)) {
 			params.shouldSample = false;
 		}
-
 		if (sliderHelper("Rays Per Pixel", "Amount of rays each pixel traces per sample", sliderSize, params.raysPerPixel, 1, 8)) {
 			params.shouldSample = false;
 		}
-
 		if (sliderHelper("Resolution", "Sets image resolution size", sliderSize, params.res, 16, 1024)) {
 			params.shouldSample = false;
 		}
 	}
+
 	if (ImGui::CollapsingHeader("Engine Settings")) {
-
-
 		if (buttonHelper("Path Tracer", "Enables standard path tracing", buttonSize, params.pathTracer)) {
 			params.shouldSample = false;
-		}
 
+			if (params.pathTracer) {
+				params.rayMarcher = false;
+				params.rmPBR = false;
+				params.maxBounces = params.prevMaxBounces;
+			}
+			else {
+				params.prevMaxBounces = params.maxBounces;
+				params.maxBounces = 0;
+			}
+		}
 		if (buttonHelper("Ray Marcher", "Enables ray marching rendering", buttonSize, params.rayMarcher)) {
 			params.shouldSample = false;
-		}
 
-		if (sliderHelper("RM Max Steps", "Maximum steps for ray marching", sliderSize, params.rmMaxSteps, 1, 1024, params.rayMarcher)) {
-			params.shouldSample = false;
-		}
-
-		if (sliderHelper("RM Min Dist", "Minimum ray marching step length for collision detection", sliderSize, params.rmNearPlane, 0.0001f, 1.0f, LogSlider, params.rayMarcher)) {
-			params.shouldSample = false;
-		}
-
-		if (sliderHelper("RM Max Dist", "If a ray step is larger than this, it stops marching", sliderSize, params.rmFarPlane, 1.0f, 1000.0f, LogSlider, params.rayMarcher)) {
-			params.shouldSample = false;
-		}
-
-		if (buttonHelper("Ray Marcher PBR", "Enables PBR rendering for ray marching", buttonSize, params.rmPBR, true, params.rayMarcher)) {
-			params.shouldSample = false;
-
-			if (!params.rmPBR) {
+			if (params.rayMarcher) {
+				params.pathTracer = false;
 				params.prevMaxBounces = params.maxBounces;
 				params.maxBounces = 0;
 			}
 			else {
+				params.rmPBR = false;
 				params.maxBounces = params.prevMaxBounces;
 			}
+		}
+		if (sliderHelper("RM Max Steps", "Maximum steps for ray marching", sliderSize, params.rmMaxSteps, 1, 1024, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (sliderHelper("RM Min Dist", "Minimum ray marching step length for collision detection", sliderSize, params.rmNearPlane, 0.0001f, 1.0f, LogSlider, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (sliderHelper("RM Max Dist", "If a ray step is larger than this, it stops marching", sliderSize, params.rmFarPlane, 1.0f, 1000.0f, LogSlider, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (sliderHelper("RM Lod Amount", "Bigger values renders far away objects with less details", sliderSize, params.rmLodAmount, 0.0f, 1.0f, LogSlider, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (sliderHelper("RM Lod Min Dist", "Minimum distance used for LOD at a distance", sliderSize, params.rmLodMinDistMult, 1.0f, 1.0f, LogSlider, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (buttonHelper("Ray Marcher PBR", "Enables PBR rendering for ray marching", buttonSize, params.rmPBR, true, params.rayMarcher)) {
+			params.shouldSample = false;
+
+			if (params.rmPBR) {
+				params.maxBounces = params.prevMaxBounces;
+			}
+			else {
+				params.prevMaxBounces = params.maxBounces;
+				params.maxBounces = 0;
+			}
+		}
+
+		if (buttonHelper("GPU Rendering", "Used GPU hardware acceleration", buttonSize, params.enableGPU)) {
+			params.shouldSample = false;
 		}
 
 		ImGui::Separator();
@@ -175,7 +197,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 			params.shouldSample = false;
 		}
 
-		if (sliderHelper("Focus Distance", "How far from the camera is the focus point", sliderSize, myCam.focusDist, 0.0f, 100.0f, true, LogSlider)) {
+		if (sliderHelper("Focus Distance", "How far from the camera is the focus point", sliderSize, myCam.focusDist, 0.0f, 100.0f, LogSlider)) {
 			params.shouldSample = false;
 		}
 
@@ -222,7 +244,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 		sliderHelper("Caustics Intensity", "Caustics intensity", sliderSize, params.causticsIntensity, 0.0f, 1.0f);
 
 		sliderHelper("Main Buffer Intensity", "Intensity of the base buffer (for example, caustics are not part of the main buffer", sliderSize, params.mainBufferIntensity, 0.0f, 1.0f);
-	
+
 		ImGui::Separator();
 	}
 
@@ -251,20 +273,20 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 
 			for (size_t i = 0; i < data.models.size(); i++) {
 				if (data.models[i].selected) {
-					newAlbedo += data.models[i].albedo;
-					newSpecCol += data.models[i].specularCol;
-					newEmissionCol += data.models[i].emissionCol;
-					newAbsorptionCol += data.models[i].absorptionCol;
-					newVolumeCol += data.models[i].volumeCol;
+					newAlbedo += data.models[i].mat.albedo;
+					newSpecCol += data.models[i].mat.specularCol;
+					newEmissionCol += data.models[i].mat.emissionCol;
+					newAbsorptionCol += data.models[i].mat.absorptionCol;
+					newVolumeCol += data.models[i].mat.volumeCol;
 
-					newIOR += data.models[i].IOR;
-					newRoughness += data.models[i].roughness;
-					newEmissionIntensity += data.models[i].emissionIntensity;
-					newRefraction += data.models[i].refraction;
-					newAbsorption += data.models[i].absorption;
-					newVolume += data.models[i].volume;
-					newDensity += data.models[i].density;
-					newMetalness += data.models[i].metalness;
+					newIOR += data.models[i].mat.IOR;
+					newRoughness += data.models[i].mat.roughness;
+					newEmissionIntensity += data.models[i].mat.emissionIntensity;
+					newRefraction += data.models[i].mat.refraction;
+					newAbsorption += data.models[i].mat.absorption;
+					newVolume += data.models[i].mat.volume;
+					newDensity += data.models[i].mat.density;
+					newMetalness += data.models[i].mat.metalness;
 
 					selectedAmount++;
 				}
@@ -289,80 +311,101 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 				newMetalness *= inv;
 			}
 
+			bool updateGPUMaterials = false;
+
 			if (ImGui::ColorEdit3("Albedo Color", (float*)&newAlbedo, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (ImGui::ColorEdit3("Specular Color", (float*)&newSpecCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (ImGui::ColorEdit3("Emission Color", (float*)&newEmissionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (ImGui::ColorEdit3("Absorption Color", (float*)&newAbsorptionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (ImGui::ColorEdit3("Volume Color", (float*)&newVolumeCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("IOR", "Index of Refraction of selected models", sliderSize, newIOR, 0.0f, 200.0f, LogSlider)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Roughness", "Roughness of selected models", sliderSize, newRoughness, 0.0f, 1.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Emission Intensity", "Emission intensity of selected models", sliderSize, newEmissionIntensity, 0.0f, 100.0f, LogSlider)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Refraction", "Refraction of selected models", sliderSize, newRefraction, 0.0f, 1.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Absorption", "How much light a material absorbs when refracted", sliderSize, newAbsorption, 0.0f, 10.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Volume", "Volume scattering of selected models", sliderSize, newVolume, 0.0f, 1.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Density", "Volume density of selected models", sliderSize, newDensity, 0.0f, 100.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (sliderHelper("Metalness", "Metalness of selected models", sliderSize, newMetalness, 0.0f, 1.0f)) {
 				params.shouldSample = false;
+				updateGPUMaterials = true;
 			}
 
 			if (selectedAmount > 0) {
 				for (size_t i = 0; i < data.models.size(); i++) {
 					if (data.models[i].selected) {
-						data.models[i].albedo = newAlbedo;
-						data.models[i].specularCol = newSpecCol;
-						data.models[i].emissionCol = newEmissionCol;
-						data.models[i].absorptionCol = newAbsorptionCol;
-						data.models[i].volumeCol = newVolumeCol;
+						data.models[i].mat.albedo = newAlbedo;
+						data.models[i].mat.specularCol = newSpecCol;
+						data.models[i].mat.emissionCol = newEmissionCol;
+						data.models[i].mat.absorptionCol = newAbsorptionCol;
+						data.models[i].mat.volumeCol = newVolumeCol;
 
-						data.models[i].IOR = newIOR;
-						data.models[i].roughness = newRoughness;
-						data.models[i].emissionIntensity = newEmissionIntensity;
-						data.models[i].refraction = newRefraction;
-						data.models[i].absorption = newAbsorption;
-						data.models[i].volume = newVolume;
-						data.models[i].density = newDensity;
-						data.models[i].metalness = newMetalness;
+						data.models[i].mat.IOR = newIOR;
+						data.models[i].mat.roughness = newRoughness;
+						data.models[i].mat.emissionIntensity = newEmissionIntensity;
+						data.models[i].mat.refraction = newRefraction;
+						data.models[i].mat.absorption = newAbsorption;
+						data.models[i].mat.volume = newVolume;
+						data.models[i].mat.density = newDensity;
+						data.models[i].mat.metalness = newMetalness;
 
 						data.models[i].updateTris(data);
 					}
 				}
+
+				if (updateGPUMaterials) {
+					pt.uploadTriangles(data);
+				}
 			}
+
+			updateGPUMaterials = false;
 
 			ImGui::Separator();
 		}
@@ -370,58 +413,58 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 		if (ImGui::CollapsingHeader("Ray Marcher Material")) {
 			ImGui::Separator();
 
-			if (ImGui::ColorEdit3("rmAlbedo Color", (float*)&params.rmAlbedo, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+			if (ImGui::ColorEdit3("rmAlbedo Color", (float*)&params.rmMat.albedo, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
 			}
 
-			if (ImGui::ColorEdit3("rmSpecular Color", (float*)&params.rmSpecularCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+			if (ImGui::ColorEdit3("rmSpecular Color", (float*)&params.rmMat.specularCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
 			}
 
-			if (ImGui::ColorEdit3("rmEmission Color", (float*)&params.rmEmissionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+			if (ImGui::ColorEdit3("rmEmission Color", (float*)&params.rmMat.emissionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
 			}
 
-			if (ImGui::ColorEdit3("rmAbsorption Color", (float*)&params.rmAbsorptionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+			if (ImGui::ColorEdit3("rmAbsorption Color", (float*)&params.rmMat.absorptionCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
 			}
 
-			if (ImGui::ColorEdit3("rmVolume Color", (float*)&params.rmVolumeCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
+			if (ImGui::ColorEdit3("rmVolume Color", (float*)&params.rmMat.volumeCol, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_NoInputs)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmIOR", "Index of Refraction of ray marcher material", sliderSize, params.rmIOR, 0.0f, 200.0f, LogSlider)) {
+			if (sliderHelper("rmIOR", "Index of Refraction of ray marcher material", sliderSize, params.rmMat.IOR, 0.0f, 200.0f, LogSlider)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmRoughness", "Roughness of ray marcher material", sliderSize, params.rmRoughness, 0.0f, 1.0f)) {
+			if (sliderHelper("rmRoughness", "Roughness of ray marcher material", sliderSize, params.rmMat.roughness, 0.0f, 1.0f)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmEmission Intensity", "Emission intensity of ray marcher material", sliderSize, params.rmEmissionIntensity, 0.0f, 100.0f, LogSlider)) {
+			if (sliderHelper("rmEmission Intensity", "Emission intensity of ray marcher material", sliderSize, params.rmMat.emissionIntensity, 0.0f, 100.0f, LogSlider)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmRefraction", "Refraction of ray marcher material", sliderSize, params.rmRefraction, 0.0f, 1.0f)) {
+			if (sliderHelper("rmRefraction", "Refraction of ray marcher material", sliderSize, params.rmMat.refraction, 0.0f, 1.0f)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmAbsorption", "How much light a material absorbs when refracted", sliderSize, params.rmAbsorption, 0.0f, 10.0f)) {
+			if (sliderHelper("rmAbsorption", "How much light a material absorbs when refracted", sliderSize, params.rmMat.absorption, 0.0f, 10.0f)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmVolume", "Volume scattering of ray marcher material", sliderSize, params.rmVolume, 0.0f, 1.0f)) {
+			if (sliderHelper("rmVolume", "Volume scattering of ray marcher material", sliderSize, params.rmMat.volume, 0.0f, 1.0f)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmDensity", "Volume density of ray marcher material", sliderSize, params.rmDensity, 0.0f, 100.0f)) {
+			if (sliderHelper("rmDensity", "Volume density of ray marcher material", sliderSize, params.rmMat.density, 0.0f, 100.0f)) {
 				params.shouldSample = false;
 			}
 
-			if (sliderHelper("rmMetalness", "Metalness of ray marcher material", sliderSize, params.rmMetalness, 0.0f, 1.0f)) {
+			if (sliderHelper("rmMetalness", "Metalness of ray marcher material", sliderSize, params.rmMat.metalness, 0.0f, 1.0f)) {
 				params.shouldSample = false;
 			}
-		
+
 			ImGui::Separator();
 		}
 

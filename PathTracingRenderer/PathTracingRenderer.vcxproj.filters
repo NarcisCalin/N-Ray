@@ -83,5 +83,11 @@
     <ClInclude Include="include\globalIds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\ptShader.glsl" />
   </ItemGroup>
 </Project>

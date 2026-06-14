@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <raylib.h>
 #include <tri.h>
+#include <material.h>
 #include <map>
 #include <bvh.h>
 
@@ -10,9 +11,11 @@
 struct PathRay;
 struct PathRayState;
 struct PTModel;
+struct PTMaterial;
 
 struct Data {
 	std::vector<Tri> tris;
+	std::vector<TriGPU> trisGPU;
 	std::vector<Tri> emTris;
 	std::vector<PathRay> rays;
 	std::vector<PathRayState> rayStates;
@@ -46,6 +49,8 @@ struct Params {
 	float contrast = 0.8f;
 	float hdriThreshold = 0.0f;
 	float hdriBrigthest = 0.0f;
+
+	Image hdri;
 
 	float hdriRotation = 0.0f;
 
@@ -90,20 +95,16 @@ struct Params {
 	float rmNearPlane = 0.001f;
 	float rmFarPlane = 1000.0f;
 
-	glm::vec3 rmAlbedo = {0.7f, 0.7f, 0.7f};
-	glm::vec3 rmSpecularCol = {1.0f, 1.0f, 1.0f};
-	glm::vec3 rmEmissionCol = {0.0f, 0.0f, 0.0f};
-	glm::vec3 rmAbsorptionCol = { 0.0f, 0.0f, 0.0f };
-	glm::vec3 rmVolumeCol = { 0.0f, 0.0f, 0.0f };
+	PTMaterial rmMat{ {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
+		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-	float rmIOR = 1.5f;
-	float rmRoughness = 0.3f;
-	float rmEmissionIntensity = 0.0f;
-	float rmRefraction = 0.0f;
-	float rmAbsorption = 0.0f;
-	float rmVolume = 0.0f;
-	float rmDensity = 0.0f;
-	float rmMetalness = 0.0f;
+	PTMaterialGPU rmMatGPU{ {0.7f, 0.7f, 0.7f}, 1.0f, {1.0f, 1.0f, 1.0f}, 0.0f, {0.0f, 0.0f, 0.0f}, 0.0f, {1.0f, 1.0f, 1.0f}, 0.0f,{0.0f, 0.0f, 0.0f}, 0.0f,
+		1.5f, 0.0f, 0.0f };
 
-	bool rmPBR = true;
+	float rmLodAmount = 0.0f;
+	float rmLodMinDistMult = 100.0f;
+
+	bool rmPBR = false;
+
+	bool enableGPU = false;
 };

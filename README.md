@@ -2,12 +2,35 @@
 
 ## N-Ray is a path tracing renderer made for learning purposes by Narcis Calin
 
-<img width="1907" height="1049" alt="nraygit1" src="https://github.com/user-attachments/assets/47c8204e-2707-4daa-8590-5df1636e7441" />
+### About
+I'm making this renderer to learn more about computer graphics. The entire project is made with C++ and GLSL and it is built on top of Raylib.
+It has both path tracing and ray marching, meaning it is possible to render conventional scenes as well as fractals and some other cool effects.
+The project started being developed for the CPU but it currently runs on the GPU as well, allowing massive performance boost.
 
-<img width="1908" height="1047" alt="nraygit2" src="https://github.com/user-attachments/assets/a736a0f1-e4ab-4317-9970-99c941f2b077" />
+### Libraries Used
+For this project I have used: 
+- Raylib for the base code and for multiple features like loading .hdr images and drawing stuff on screen
+- Dear ImGui for the UI
+- rlImGui to use ImGui with Raylib
+- Embree for fast CPU BVH traversal
+- GLM for math
 
-<img width="1908" height="1049" alt="nraygit3" src="https://github.com/user-attachments/assets/a1c402a2-148b-4d69-abaa-65863e2f12b6" />
+### Features
+- CPU and GPU rendering
+- Physically based rendering path tracing
+- Ray marching which also includes a PBR mode
+- Camera parameters simulation
+- Debug rays to see how rays bounce around the scene
+- Dynamic depth of field by clicking on the scene
 
-<img width="640" height="720" alt="Git1GifPt" src="https://github.com/user-attachments/assets/b879ecbe-55df-41e9-986f-6e30aa0848f7" />
+### How to build
+Currently the best way to build N-Ray is by opening it through Visual Studio. You might need to get some dependencies, but most of them are inside the "external" folder
 
-<img width="640" height="720" alt="Git2GifPt" src="https://github.com/user-attachments/assets/6b48117d-5eae-4c6b-95a2-d44bd4a28e84" />
+### Gallery
+
+<img width="1910" height="1051" alt="nrayFractal" src="https://github.com/user-attachments/assets/9c03b071-8e51-459f-a6de-0ed9f290b58a" />
+
+<img width="1905" height="1048" alt="nrayGlass" src="https://github.com/user-attachments/assets/662178cd-6d0f-4956-8cb2-e925253451c8" />
+
+<img width="1911" height="1052" alt="nrayFractal2" src="https://github.com/user-attachments/assets/5e81a221-69d4-4b8a-b6d5-e824591a59e8" />
+

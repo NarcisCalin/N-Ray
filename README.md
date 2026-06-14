@@ -31,3 +31,6 @@ Currently the best way to build N-Ray is by opening it through Visual Studio. Yo
 <img width="1910" height="1051" alt="nrayFractal" src="https://github.com/user-attachments/assets/9c03b071-8e51-459f-a6de-0ed9f290b58a" />
 
 <img width="1905" height="1048" alt="nrayGlass" src="https://github.com/user-attachments/assets/662178cd-6d0f-4956-8cb2-e925253451c8" />
+
+<img width="1911" height="1052" alt="nrayFractal2" src="https://github.com/user-attachments/assets/5e81a221-69d4-4b8a-b6d5-e824591a59e8" />
+

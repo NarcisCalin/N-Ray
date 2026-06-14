@@ -107,4 +107,6 @@ struct Params {
 	bool rmPBR = false;
 
 	bool enableGPU = false;
+
+	bool exportRender = false;
 };

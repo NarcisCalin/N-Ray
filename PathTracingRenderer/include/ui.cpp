@@ -223,6 +223,8 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 
 		sliderHelper("Contrast", "Controls image contrast", sliderSize, params.contrast, 0.0f, 2.0f, LogSlider);
 
+		buttonHelper("Export Render", "Saves render image to disk", buttonSize, params.exportRender);
+
 		ImGui::Separator();
 	}
 

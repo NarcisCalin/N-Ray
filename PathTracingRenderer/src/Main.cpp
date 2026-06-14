@@ -302,7 +302,7 @@ int main() {
 	PTMaterial emissiveWhiteMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
 		1.0f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-	/*ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
+	ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
 
 	ObjImporter glass{ "models/sceneGlass.obj", data, glassMat, true };
 
@@ -310,7 +310,7 @@ int main() {
 
 	ObjImporter red{ "models/sceneRed.obj", data, redGlossyMat, true };
 
-	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };*/
+	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -397,7 +397,7 @@ int main() {
 		.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
 	};
 
-	Texture2D render = LoadTextureFromImage(ptData);
+	Texture2D cpuRender = LoadTextureFromImage(ptData);
 
 	params.hdri = LoadImage("textures/HDRI.hdr");
 	ImageFormat(&params.hdri, PIXELFORMAT_UNCOMPRESSED_R32G32B32);
@@ -439,7 +439,7 @@ int main() {
 			screen.initScreen(params.res, data);
 			data.rays.clear();
 
-			UnloadTexture(render);
+			UnloadTexture(cpuRender);
 			Image ptData = {
 				.data = data.frameBuffer.data(),
 				.width = screen.resX,
@@ -447,7 +447,7 @@ int main() {
 				.mipmaps = 1,
 				.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
 			};
-			render = LoadTextureFromImage(ptData);
+			cpuRender = LoadTextureFromImage(ptData);
 
 			params.shouldSample = false;
 
@@ -480,7 +480,13 @@ int main() {
 
 		if (!params.enableGPU) {
 			if (params.render) {
-				pt.render(data, myCam, screen, params, render, params.hdri);
+				pt.render(data, myCam, screen, params, cpuRender, params.hdri);
+			}
+		}
+
+		if (params.enableGPU) {
+			if (params.render) {
+				pt.runShader(params.screenSize, screen.resX, screen.resY, myCam, params, screen);
 			}
 		}
 
@@ -564,8 +570,29 @@ int main() {
 
 		EndMode3D();
 
-		if (params.enableGPU) {
-			pt.runShader(params.screenSize, screen.resX, screen.resY, myCam, params, screen);
+		if (params.exportRender) {
+			TakeScreenshot("Output_01.png");
+
+			if (params.render) {
+
+				Image finalRender;
+
+				if (params.enableGPU) {
+					finalRender = LoadImageFromTexture(pt.gpuFinalBuffer);
+				}
+				else {
+					finalRender = LoadImageFromTexture(cpuRender);
+				}
+
+				ExportImage(finalRender, "Output_01.png");
+
+				UnloadImage(finalRender);
+			}
+			else {
+				TakeScreenshot("OutputViewport_01.png");
+			}
+
+			params.exportRender = false;
 		}
 
 		params.shouldSample = true;
@@ -608,7 +635,7 @@ int main() {
 		}*/
 	}
 
-	UnloadTexture(render);
+	UnloadTexture(cpuRender);
 	UnloadImage(params.hdri);
 
 	glDeleteProgram(pt.computeProgram);

@@ -1012,7 +1012,7 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 
 std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState, Params& params, Data& data, Image& hdri, PTCam& myCam, bool debug) {
 
-	debugRays.clear();
+	std::vector<DebugRay> debugRays;
 
 	bool causticsReceiver = false;
 	bool refracted = false;

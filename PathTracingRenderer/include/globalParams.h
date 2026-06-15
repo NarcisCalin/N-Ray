@@ -91,7 +91,7 @@ struct Params {
 	bool rayMarcher = true;
 	bool pathTracer = false;
 
-	int rmMaxSteps = 1000;
+	int rmMaxSteps = 350;
 	float rmNearPlane = 0.001f;
 	float rmFarPlane = 1000.0f;
 

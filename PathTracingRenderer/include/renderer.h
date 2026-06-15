@@ -77,7 +77,7 @@ struct PathTracer {
 
 	glm::vec3 InterpolateNormal(PathRayState& rayState, std::vector<Tri>& tris);
 
-	std::vector<DebugRay> debugRays;
+	//std::vector<DebugRay> debugRays;
 
 	//void sampleSun(PathRay& ray, std::vector<Tri>& tris, Params& params, bool& isShadow); // CURRENTLY UNUSED
 

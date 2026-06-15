@@ -13,6 +13,10 @@
 #include <rlImGui.h>
 #include <immintrin.h>
 #include <rtcore.h>
+#include <regex>
+#include <filesystem>
+#include <thread>
+#include <atomic>
 
 #define RAYGUI_IMPLEMENTATION
 
@@ -275,6 +279,31 @@ void selectModel() {
 	}
 }
 
+int GetNextNumber(const std::string& folder, const std::string& prefix) {
+
+	int highest = 0;
+
+	std::regex pattern(prefix + R"((\d+)\.png)");
+
+	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	{
+		if (!entry.is_regular_file())
+			continue;
+
+		std::string filename = entry.path().filename().string();
+
+		std::smatch match;
+		if (std::regex_match(filename, match, pattern))
+		{
+			int number = std::stoi(match[1].str());
+
+			highest = std::max(highest, number);
+		}
+	}
+
+	return highest + 1;
+}
+
 int main() {
 
 	SetConfigFlags(FLAG_WINDOW_ALWAYS_RUN);
@@ -302,7 +331,7 @@ int main() {
 	PTMaterial emissiveWhiteMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
 		1.0f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-	ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
+	/*ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
 
 	ObjImporter glass{ "models/sceneGlass.obj", data, glassMat, true };
 
@@ -310,7 +339,7 @@ int main() {
 
 	ObjImporter red{ "models/sceneRed.obj", data, redGlossyMat, true };
 
-	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };
+	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };*/
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
@@ -571,8 +600,6 @@ int main() {
 		EndMode3D();
 
 		if (params.exportRender) {
-			TakeScreenshot("Output_01.png");
-
 			if (params.render) {
 
 				Image finalRender;
@@ -584,18 +611,28 @@ int main() {
 					finalRender = LoadImageFromTexture(cpuRender);
 				}
 
-				ExportImage(finalRender, "Output_01.png");
+				int nextNumber = GetNextNumber("outputRenders", "Output_");
+
+				std::string filename = std::format("outputRenders/Output_{:02}.png", nextNumber);
+
+				ExportImage(finalRender, filename.c_str());
 
 				UnloadImage(finalRender);
 			}
 			else {
-				TakeScreenshot("OutputViewport_01.png");
+
+				int nextNumber = GetNextNumber("outputRenders", "OutputViewport_");
+
+				std::string filename = std::format("outputRenders/OutputViewport_{:02}.png", nextNumber);
+
+				TakeScreenshot(filename.c_str());
 			}
 
 			params.exportRender = false;
 		}
 
 		params.shouldSample = true;
+
 		ui.logic(params, data, myCam, pt);
 
 		rlImGuiEnd();

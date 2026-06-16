@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <globalIds.h>
 #include <material.h>
+#include <raylib.h>
 
 struct Tri {
 	PTMaterial mat;
@@ -17,7 +18,7 @@ struct Tri {
 	glm::vec3 min;
 	glm::vec3 max;
 	glm::vec3 center;
-	uint32_t id = globalTriId++;
+	uint32_t id;
 	bool doubleSided;
 	uint32_t modelId;
 
@@ -25,12 +26,14 @@ struct Tri {
 
 	Tri(PTMaterial mat, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 aN, glm::vec3 bN, glm::vec3 cN, bool doubleSided)
 		: mat(mat), a(a), b(b), c(c), aN(aN), bN(bN), cN(cN), doubleSided(doubleSided) {
-		calculateNormal();
+
+		id = globalTriId++;
+		initNormal();
 		calculateAABB();
 		calculateCenter();
 	}
 
-	void calculateNormal() {
+	void initNormal() {
 		eA = b - a;
 		eB = c - a;
 
@@ -44,6 +47,29 @@ struct Tri {
 
 	void calculateCenter() {
 		center = (a + b + c) / 3.0f;
+	}
+
+	void drawNormals() {
+
+		//glm::vec3 finalPos = center + normal * 0.1f;
+
+		//Color col = { int(normal.x * 255.0f), int(normal.y * 255.0f), int(normal.z * 255.0f), 255 };
+		//DrawLine3D({ center.x, center.y, center.z }, { finalPos.x, finalPos.y, finalPos.z }, col);
+
+		glm::vec3 finalPosA = a + aN * 0.1f;
+
+		Color colA = { int(aN.x * 255.0f), int(aN.y * 255.0f), int(aN.z * 255.0f), 255 };
+		DrawLine3D({ a.x, a.y, a.z }, { finalPosA.x, finalPosA.y, finalPosA.z }, colA);
+
+		glm::vec3 finalPosB = b + bN * 0.1f;
+
+		Color colB = { int(bN.x * 255.0f), int(bN.y * 255.0f), int(bN.z * 255.0f), 255 };
+		DrawLine3D({ b.x, b.y, b.z }, { finalPosB.x, finalPosB.y, finalPosB.z }, colB);
+
+		glm::vec3 finalPosC = c + cN * 0.1f;
+
+		Color colC = { int(cN.x * 255.0f), int(cN.y * 255.0f), int(cN.z * 255.0f), 255 };
+		DrawLine3D({ c.x, c.y, c.z }, { finalPosC.x, finalPosC.y, finalPosC.z }, colC);
 	}
 };
 

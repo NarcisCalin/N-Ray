@@ -16,6 +16,8 @@ struct PTMaterial {
 	float density;
 	float metalness;
 
+	PTMaterial() = default;
+
 	PTMaterial(
 		const glm::vec3& albedo,
 		const glm::vec3& specularCol,

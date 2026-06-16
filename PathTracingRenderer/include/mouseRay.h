@@ -9,7 +9,7 @@
 
 struct MouseRay {
 
-	PathRay mouseRay(Params& params, Data& data, Screen& screen, PathTracer& pt, PTCam& myCam) {
+	PathRay mouseRay(Params& params, Screen& screen, PathTracer& pt, PTCam& myCam) {
 		glm::vec2 mPos = { GetMousePosition().x / params.screenSize.x, GetMousePosition().y / params.screenSize.y };
 
 		int x = int(screen.resX * mPos.x);

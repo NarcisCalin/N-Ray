@@ -6,12 +6,14 @@
 #include <material.h>
 #include <map>
 #include <bvh.h>
+#include <lights.h>
 
 
 struct PathRay;
 struct PathRayState;
 struct PTModel;
 struct PTMaterial;
+struct AreaLight;
 
 struct Data {
 	std::vector<Tri> tris;
@@ -23,6 +25,7 @@ struct Data {
 	std::vector<glm::vec3> accumBuffer;
 	std::vector<glm::vec3> causticsBuffer;
 	std::vector<PTModel> models;
+	std::vector<AreaLight> areaLights;
 
 	std::vector<uint32_t> triMap;
 
@@ -88,8 +91,8 @@ struct Params {
 
 	float renderTime = 0.0f;
 
-	bool rayMarcher = true;
-	bool pathTracer = false;
+	bool rayMarcher = false;
+	bool pathTracer = true;
 
 	int rmMaxSteps = 350;
 	float rmNearPlane = 0.001f;
@@ -109,4 +112,12 @@ struct Params {
 	bool enableGPU = false;
 
 	bool exportRender = false;
+
+	bool hasSceneChanged = false;
+	bool updateGPU = false;
+	bool updateCPU = false;
+
+	bool addAreaLight = false;
+
+	uint32_t selectedModelsAmount = 0;
 };

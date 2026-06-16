@@ -87,6 +87,13 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 
 		if (buttonHelper("GPU Rendering", "Used GPU hardware acceleration", buttonSize, params.enableGPU)) {
 			params.shouldSample = false;
+
+			if (params.enableGPU) {
+				params.updateGPU = true;
+			}
+			else {
+				params.updateCPU = true;
+			}
 		}
 
 		ImGui::Separator();
@@ -271,8 +278,6 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 			float newDensity = 0.0f;
 			float newMetalness = 0.0f;
 
-			uint32_t selectedAmount = 0;
-
 			for (size_t i = 0; i < data.models.size(); i++) {
 				if (data.models[i].selected) {
 					newAlbedo += data.models[i].mat.albedo;
@@ -289,13 +294,11 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 					newVolume += data.models[i].mat.volume;
 					newDensity += data.models[i].mat.density;
 					newMetalness += data.models[i].mat.metalness;
-
-					selectedAmount++;
 				}
 			}
 
-			if (selectedAmount > 0) {
-				float inv = 1.0f / float(selectedAmount);
+			if (params.selectedModelsAmount > 0) {
+				float inv = 1.0f / float(params.selectedModelsAmount);
 
 				newAlbedo *= inv;
 				newSpecCol *= inv;
@@ -380,7 +383,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 				updateGPUMaterials = true;
 			}
 
-			if (selectedAmount > 0) {
+			if (params.selectedModelsAmount > 0) {
 				for (size_t i = 0; i < data.models.size(); i++) {
 					if (data.models[i].selected) {
 						data.models[i].mat.albedo = newAlbedo;
@@ -471,6 +474,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 		}
 
 		ImGui::Separator();
+
+		if (buttonHelper("Add Area Light", "Add an area light at the scene origin", buttonSize, params.addAreaLight)) {
+			params.shouldSample = false;
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Debug Settings")) {
@@ -509,6 +516,10 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 	ImGui::SetNextWindowSize(ImVec2(250.0f, 400.0f), ImGuiCond_Once);
 	ImGui::SetNextWindowPos(ImVec2(params.screenSize.x - 250.0f, 0.0f), ImGuiCond_Once);
 	ImGui::Begin("Stats", nullptr);
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
 
 	ImGui::Text("FPS: %.d", GetFPS());
 
@@ -556,6 +567,55 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 
 	ImGui::End();
 
+	ImGui::SetNextWindowSize(ImVec2(250.0f, 400.0f), ImGuiCond_Once);
+	ImGui::SetNextWindowPos(ImVec2(params.screenSize.x - 250.0f, 410.0f), ImGuiCond_Once);
+	ImGui::Begin("Information", nullptr);
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	ImGui::Text("Navigation: ");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Use WASD to move");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Hold Right Click to look around");
+
+	ImGui::Spacing();
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	ImGui::Text("Geometry Transformation: ");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Move: E");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Rotate: R");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Scale: T");
+
+	ImGui::Spacing();
+
+	ImGui::Text("Once you pressed E, R or T, you");
+	ImGui::Text("can press X, Y or Z to only");
+	ImGui::Text("transform in the desired axis");
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+
+	ImGui::End();
 }
 
 bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, float& parameter, float minVal, float maxVal,

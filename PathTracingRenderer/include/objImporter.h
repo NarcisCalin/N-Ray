@@ -140,6 +140,8 @@ struct ObjImporter {
 				}
 			}
 		}
+
+		data.models.back().calculateOriginCenter(data);
 	}
 
 };

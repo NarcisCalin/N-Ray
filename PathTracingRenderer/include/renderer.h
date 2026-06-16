@@ -47,7 +47,7 @@ struct Params;
 
 struct PathTracer {
 
-	bool rayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t);
+	//bool rayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t);
 
 	//bool rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT);
 
@@ -387,6 +387,18 @@ struct PathTracer {
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	}
 
+	void uploadBVH(Data& data) {
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, bvhSSBO);
+
+		glBufferData(GL_SHADER_STORAGE_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER,
+			globalCompactBVHGPU.size() * sizeof(CompactBVHGPU),
+			globalCompactBVHGPU.data(),
+			GL_DYNAMIC_DRAW);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+
 	void initCompute(int& resX, int& resY) {
 
 		createComputeTexture(resX, resY);
@@ -476,6 +488,11 @@ struct PathTracer {
 	}
 
 	void gpuSampleLogic(Params& params) {
+
+		if (params.hasSceneChanged) {
+			params.shouldSample = false;
+		}
+
 		if (!params.shouldSample) {
 
 			params.currentSample = 1;

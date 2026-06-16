@@ -15,8 +15,7 @@
 #include <rtcore.h>
 #include <regex>
 #include <filesystem>
-#include <thread>
-#include <atomic>
+#include <numeric>
 
 #define RAYGUI_IMPLEMENTATION
 
@@ -34,6 +33,8 @@
 #include <objImporter.h>
 #include <ui.h>
 #include <mouseRay.h>
+#include <lights.h>
+#include <objectManipulation.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/rotate_vector.hpp>
@@ -45,6 +46,7 @@ PathTracer pt;
 PTCam myCam;
 UI ui;
 MouseRay mRayGen;
+ObjectManipulation objMan;
 
 std::vector<BVH> globalBVH;
 std::vector<CompactBVH> globalCompactBVH;
@@ -54,18 +56,31 @@ uint32_t globalTriId = 0;
 uint32_t globalModelId = 0;
 
 void createFlatBVH() {
-
 	globalBVH.clear();
-
-	if (data.tris.empty()) {
-		return;
-	}
+	if (data.tris.empty()) return;
 
 	globalBVH.reserve(data.tris.size() * 2);
-
 	globalBVH.emplace_back();
 
-	globalBVH[0] = BVH(0, static_cast<uint32_t>(data.tris.size() - 1), data.tris, globalBVH);
+	std::vector<uint32_t> triIndices(data.tris.size());
+	std::iota(triIndices.begin(), triIndices.end(), 0);
+
+	globalBVH[0] = BVH(0, uint32_t(data.tris.size() - 1),
+		triIndices, data.tris, data.models, globalBVH);
+
+	std::vector<Tri> sorted(data.tris.size());
+
+	for (size_t i = 0; i < triIndices.size(); ++i) {
+		sorted[i] = data.tris[triIndices[i]];
+		sorted[i].id = uint32_t(i);
+	}
+
+	data.tris = std::move(sorted);
+
+	for (auto& model : data.models) model.tris.clear();
+	for (size_t i = 0; i < data.tris.size(); ++i) {
+		data.models[data.tris[i].modelId].tris.push_back(uint32_t(i));
+	}
 }
 
 glm::mat4 rotation = glm::rotate(
@@ -82,64 +97,6 @@ void mousePosDisplay() {
 	DrawText(TextFormat("Y: %d", int(mousePos.y)), int(mousePos.x) - 50, int(mousePos.y) - 20, 20, DARKGRAY);
 
 }
-
-struct AreaLight {
-
-	glm::vec3 pos;
-	glm::vec3 emissionCol;
-	float emissionStrength;
-	float size;
-
-	Tri a;
-	Tri b;
-
-	PTMaterial areaLightMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {emissionCol}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
-		1.0f, 1.0f, emissionStrength, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-
-	AreaLight(glm::vec3 pos, glm::vec3 emissionCol, float emissionStrength, float size)
-
-		: pos(pos),
-		emissionCol(emissionCol),
-		emissionStrength(emissionStrength),
-		size(size),
-
-		a{
-
-			areaLightMat,
-
-			{-size + pos.x, -size + pos.y, pos.z},
-			{size + pos.x, size + pos.y, pos.z},
-			{size + pos.x, -size + pos.y, pos.z},
-
-			{0.0f, 0.0f, -1.0f},
-			{0.0f, 0.0f, -1.0f},
-			{0.0f, 0.0f, -1.0f},
-
-			false
-		},
-
-		b{
-			areaLightMat,
-
-			{size + pos.x, size + pos.y, pos.z},
-			{-size + pos.x, -size + pos.y, pos.z},
-			{-size + pos.x, size + pos.y, pos.z},
-
-			{0.0f, 0.0f, -1.0f},
-			{0.0f, 0.0f, -1.0f},
-			{0.0f, 0.0f, -1.0f},
-
-			false
-		} {
-
-		addTrisToVector();
-	}
-
-	void addTrisToVector() {
-		data.tris.push_back(a);
-		data.tris.push_back(b);
-	}
-};
 
 //void createLights() {
 //
@@ -201,7 +158,7 @@ float debugRaySpeed = 50.0f;
 void traceDebugRay(Image& hdri) {
 	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI && !myCam.clickDof) {
 
-		PathRay mRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+		PathRay mRay = mRayGen.mouseRay(params, screen, pt, myCam);
 		PathRayState mRayState = mRayGen.mouseRayState();
 
 		debugRays = pt.rayLogic(mRay, mRayState, params, data, hdri, myCam, true);
@@ -236,7 +193,7 @@ void traceDebugRay(Image& hdri) {
 }
 
 void setDofDist(Image& hdri) {
-	PathRay dofRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+	PathRay dofRay = mRayGen.mouseRay(params, screen, pt, myCam);
 	PathRayState dofRayState = mRayGen.mouseRayState();
 
 	float closestT = FLT_MAX;
@@ -260,7 +217,7 @@ void setDofDist(Image& hdri) {
 
 void selectModel() {
 	if (IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
-		PathRay selecRay = mRayGen.mouseRay(params, data, screen, pt, myCam);
+		PathRay selecRay = mRayGen.mouseRay(params, screen, pt, myCam);
 		PathRayState selecRayState = mRayGen.mouseRayState();
 
 		float closestT = FLT_MAX;
@@ -274,7 +231,7 @@ void selectModel() {
 		}
 
 		if (selecRayState.hit) {
-			data.models[data.tris[selecRayState.triIdx].modelId].selected = true;;
+			data.models[data.tris[selecRayState.triIdx].modelId].selected = true;
 		}
 	}
 }
@@ -302,6 +259,71 @@ int GetNextNumber(const std::string& folder, const std::string& prefix) {
 	}
 
 	return highest + 1;
+}
+
+bool deleteSelectedModel() {
+	if (IO::shortcutPress(KEY_DELETE)) {
+
+		std::vector<Tri> newTris;
+
+		std::vector<bool> isSelected(data.models.size(), false);
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (data.models[i].selected) {
+				isSelected[i] = true;
+			}
+		}
+
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (!isSelected[i]) {
+				for (size_t j = 0; j < data.models[i].tris.size(); j++) {
+					newTris.push_back(data.tris[data.models[i].tris[j]]);
+				}
+			}
+		}
+
+		std::vector<PTModel> newModels;
+		std::vector<uint32_t> oldToNewIndex(data.models.size(), UINT32_MAX);
+
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (!isSelected[i]) {
+				oldToNewIndex[i] = static_cast<uint32_t>(newModels.size());
+				newModels.push_back(data.models[i]);
+			}
+		}
+
+		size_t triIndex = 0;
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (!isSelected[i]) {
+
+				PTModel& model = newModels[oldToNewIndex[i]];
+				std::vector<uint32_t> newTriIndices;
+
+				for (size_t j = 0; j < model.tris.size(); j++) {
+					newTriIndices.push_back(static_cast<uint32_t>(triIndex++));
+				}
+				model.tris = newTriIndices;
+			}
+		}
+
+		for (size_t i = 0; i < newTris.size(); i++) {
+
+			uint32_t oldModelId = newTris[i].modelId;
+			if (oldModelId < oldToNewIndex.size() && oldToNewIndex[oldModelId] != UINT32_MAX) {
+				newTris[i].modelId = oldToNewIndex[oldModelId];
+			}
+		}
+
+		data.tris = std::move(newTris);
+		data.models = std::move(newModels);
+
+		params.hasSceneChanged = true;
+		params.updateGPU = true;
+		params.updateCPU = true;
+
+		return true;
+	}
+
+	return false;
 }
 
 int main() {
@@ -348,21 +370,13 @@ int main() {
 	std::cout << "Creating Lights..." << '\n';
 	//createLights();
 
-	ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data, emissiveWhiteMat, false };
+	//ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data, emissiveWhiteMat, false };
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
 	screen.initScreen(params.res, data);
 	data.rays.resize(screen.resX * screen.resY);
 	data.rayStates.resize(screen.resX * screen.resY);
-
-	struct alignas(16) CompactBVHGPU {
-		glm::vec3 min;
-		uint32_t indexData;
-
-		glm::vec3 max;
-		uint32_t triCount;
-	};
 
 	std::cout << "Build BVH Tree..." << '\n';
 	createFlatBVH();
@@ -384,6 +398,8 @@ int main() {
 
 	//sortByEmission();
 	//findEmissiveAmount();
+
+	// CHECK IF THIS IS NOT NEEDED
 
 	for (size_t i = 0; i < data.models.size(); i++) {
 		data.models[i].tris.clear();
@@ -490,12 +506,19 @@ int main() {
 			params.shouldSample = true;
 		}
 
+		params.selectedModelsAmount = 0;
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (data.models[i].selected) {
+				params.selectedModelsAmount++;
+			}
+		}
+
 		if (myCam.clickDof && IsMouseButtonPressed(0) && !params.isMouseHoveringUI) {
 			setDofDist(params.hdri);
 			params.shouldSample = false;
 		}
 
-		if (params.enableSelection) {
+		if (params.enableSelection && !objMan.grab && !objMan.rotate && !objMan.scale) {
 			selectModel();
 		}
 
@@ -506,6 +529,58 @@ int main() {
 		cam3D.up = { myCam.up.x, myCam.up.y, myCam.up.z };
 
 		cam3D.fovy = myCam.fovV;
+
+		params.hasSceneChanged = false;
+
+		objMan.initTransform(params.selectedModelsAmount);
+
+		for (size_t i = 0; i < data.models.size(); i++) {
+			if (data.models[i].selected) {
+				data.models[i].transformLogic(objMan, data, params.hasSceneChanged, myCam.right, myCam.up);
+			}
+		}
+
+		if (params.addAreaLight) {
+			data.areaLights.emplace_back(AreaLight({ 0.0f, 0.0f, 3.0f }, { 1.0f, 1.0f, 1.0f }, 10.0f, 1.0f, data));
+			params.addAreaLight = false;
+			params.hasSceneChanged = true;
+		}
+
+		if (params.hasSceneChanged) {
+			params.updateGPU = true;
+			params.updateCPU = true;
+		}
+
+		if (deleteSelectedModel() || params.enableGPU) {
+			if (params.updateGPU) {
+				globalCompactBVH.clear();
+
+				createFlatBVH();
+				if (!globalBVH.empty()) {
+					pt.flattenBVH(0, globalBVH, globalCompactBVH);
+
+					globalCompactBVHGPU.resize(globalCompactBVH.size());
+
+					for (size_t i = 0; i < globalCompactBVH.size(); i++) {
+						globalCompactBVHGPU[i].min = glm::vec4{ globalCompactBVH[i].min, 0 };
+						globalCompactBVHGPU[i].indexData = globalCompactBVH[i].indexData;
+
+						globalCompactBVHGPU[i].max = glm::vec4{ globalCompactBVH[i].max, 0 };
+						globalCompactBVHGPU[i].triCount = globalCompactBVH[i].triCount;
+					}
+				}
+
+				pt.uploadTriangles(data);
+				pt.uploadBVH(data);
+
+				params.updateGPU = false;
+			}
+		}
+
+		if (params.updateCPU) {
+			data.embreeBVH.build(data.tris);
+			params.updateCPU = false;
+		}
 
 		if (!params.enableGPU) {
 			if (params.render) {
@@ -581,14 +656,9 @@ int main() {
 			rlEnd();
 		}
 
-		/*for (size_t i = 0; i < globalBVH.size(); i++) {
-
-			if (globalBVH[i].children[0] == UINT32_MAX || globalBVH[i].children[1] == UINT32_MAX) {
-				continue;
-			}
-
-			BVH& na = globalBVH[globalBVH[i].children[0]];
-			BVH& nb = globalBVH[globalBVH[i].children[1]];
+		/*for (size_t i = 0; i < globalCompactBVH.size(); i++) {
+			CompactBVH& na = globalCompactBVH[i];
+			CompactBVH& nb = globalCompactBVH[i];
 
 			BoundingBox bba{ {na.min.x, na.min.y, na.min.z },{na.max.x, na.max.y, na.max.z } };
 			BoundingBox bbb{ {nb.min.x, nb.min.y, nb.min.z },{nb.max.x, nb.max.y, nb.max.z } };

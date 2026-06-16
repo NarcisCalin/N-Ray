@@ -4,50 +4,50 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <omp.h>
 
-bool PathTracer::rayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
-	const float EPSILON = 0.0000001f;
-
-	glm::vec3 edge1 = tri.b - tri.a;
-	glm::vec3 edge2 = tri.c - tri.a;
-
-	glm::vec3 h = glm::cross(ray.dir, edge2);
-	float det = glm::dot(edge1, h);
-
-	if (tri.doubleSided) {
-		if (det > -EPSILON && det < EPSILON) {
-			return false;
-		}
-	}
-	else {
-		if (det < EPSILON) {
-			return false;
-		}
-	}
-
-	float invDet = 1.0f / det;
-
-	glm::vec3 s = ray.src - tri.a;
-	float u = invDet * glm::dot(s, h);
-
-	if (u < 0.0f || u > 1.0f) {
-		return false;
-	}
-
-	glm::vec3 q = glm::cross(s, edge1);
-	float v = invDet * glm::dot(ray.dir, q);
-
-	if (v < 0.0f || u + v > 1.0f) {
-		return false;
-	}
-
-	t = invDet * glm::dot(edge2, q);
-
-	if (t > EPSILON) {
-		return true;
-	}
-
-	return false;
-}
+//bool PathTracer::rayIntersectsTriangle(PathRay& ray, const Tri& tri, float& t) {
+//	const float EPSILON = 0.0000001f;
+//
+//	glm::vec3 edge1 = tri.b - tri.a;
+//	glm::vec3 edge2 = tri.c - tri.a;
+//
+//	glm::vec3 h = glm::cross(ray.dir, edge2);
+//	float det = glm::dot(edge1, h);
+//
+//	if (tri.doubleSided) {
+//		if (det > -EPSILON && det < EPSILON) {
+//			return false;
+//		}
+//	}
+//	else {
+//		if (det < EPSILON) {
+//			return false;
+//		}
+//	}
+//
+//	float invDet = 1.0f / det;
+//
+//	glm::vec3 s = ray.src - tri.a;
+//	float u = invDet * glm::dot(s, h);
+//
+//	if (u < 0.0f || u > 1.0f) {
+//		return false;
+//	}
+//
+//	glm::vec3 q = glm::cross(s, edge1);
+//	float v = invDet * glm::dot(ray.dir, q);
+//
+//	if (v < 0.0f || u + v > 1.0f) {
+//		return false;
+//	}
+//
+//	t = invDet * glm::dot(edge2, q);
+//
+//	if (t > EPSILON) {
+//		return true;
+//	}
+//
+//	return false;
+//}
 
 //bool PathTracer::rayAABB(const PathRay& ray, const glm::vec3& boxMin, const glm::vec3& boxMax, float maxT) {
 //	float tx1 = (boxMin.x - ray.src.x) * ray.invDir.x;
@@ -97,9 +97,11 @@ void PathTracer::flattenBVH(uint32_t buildNodeIdx, const std::vector<BVH>& build
 		flatNodes[myFlatIndex].triCount = 0;
 
 		flattenBVH(buildNode.children[0], buildNodes, flatNodes);
+
+		uint32_t rightChildFlatIdx = static_cast<uint32_t>(flatNodes.size());
 		flattenBVH(buildNode.children[1], buildNodes, flatNodes);
 
-		flatNodes[myFlatIndex].indexData = static_cast<uint32_t>(flatNodes.size());
+		flatNodes[myFlatIndex].indexData = rightChildFlatIdx;
 	}
 }
 
@@ -1181,6 +1183,8 @@ std::vector<DebugRay> PathTracer::rayLogic(PathRay& ray, PathRayState& rayState,
 
 				break;
 			}
+
+			//ray.invDir = 1.0f / ray.dir;
 		}
 	}
 
@@ -1223,6 +1227,7 @@ void PathTracer::rayGeneration(std::vector<PathRay>& rays, std::vector<PathRaySt
 
 			rays[index].src = src;
 			rays[index].dir = dir;
+			//rays[index].invDir = 1.0f / dir;
 			rayStates[index].hitPos = src;
 			rayStates[index].col = glm::vec3(0.0f);
 			rayStates[index].causticsCol = glm::vec3(0.0f);
@@ -1279,6 +1284,10 @@ static_cast<unsigned char>(col.z * 255),
 }
 
 void PathTracer::render(Data& data, PTCam& myCam, Screen& screen, Params& params, Texture2D& render, Image& hdri) {
+
+	if (params.hasSceneChanged) {
+		params.shouldSample = false;
+	}
 
 	if (!params.shouldSample) {
 

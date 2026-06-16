@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <tri.h>
 #include <rtcore.h>
+#include <model.h>
 
 struct EmbreeBVH {
 
@@ -52,8 +53,16 @@ struct EmbreeBVH {
 	void build(std::vector<Tri>& inputTris) {
 		tris = &inputTris;
 
+		if (scene) {
+			rtcReleaseScene(scene);
+			scene = nullptr;
+		}
+
+		scene = rtcNewScene(device);
+
 		vertices.clear();
 		vertices.reserve(inputTris.size() * 3);
+
 		for (const Tri& t : inputTris) {
 			vertices.push_back(t.a);
 			vertices.push_back(t.b);
@@ -73,8 +82,9 @@ struct EmbreeBVH {
 			vertexCount
 		);
 
-		for (size_t i = 0; i < vertexCount; i++)
+		for (size_t i = 0; i < vertexCount; i++) {
 			v[i] = vertices[i];
+		}
 
 		uint32_t* idx = (uint32_t*)rtcSetNewGeometryBuffer(
 			geom,
@@ -92,7 +102,9 @@ struct EmbreeBVH {
 
 		rtcCommitGeometry(geom);
 		rtcAttachGeometry(scene, geom);
+
 		rtcReleaseGeometry(geom);
+
 		rtcCommitScene(scene);
 	}
 };
@@ -115,11 +127,12 @@ struct BVH {
 	uint32_t endIndex = 0;
 	uint32_t next = 0;
 
-	BVH(uint32_t indexData, uint32_t endIndex, std::vector<Tri>& tris, std::vector<BVH>& globalBVH) :
+	BVH(uint32_t indexData, uint32_t endIndex, std::vector<uint32_t>& triIndices,
+		std::vector<Tri>& tris, std::vector<PTModel>& models, std::vector<BVH>& globalBVH) :
 		indexData(indexData), endIndex(endIndex) {
 
-		calculateAABB(tris);
-		avgSplit(tris);
+		calculateAABB(triIndices, tris);
+		avgSplit(triIndices, tris);
 
 		uint32_t count = 0;
 		if (endIndex >= indexData && indexData < tris.size()) {
@@ -128,7 +141,7 @@ struct BVH {
 		}
 
 		if (count >= 3) {
-			createChildren(tris, globalBVH);
+			createChildren(triIndices, tris, models, globalBVH);
 			calculateNextNeighbor();
 		}
 	}
@@ -145,7 +158,7 @@ struct BVH {
 		children[1] = UINT32_MAX;
 	}
 
-	void calculateAABB(std::vector<Tri>& tris) {
+	void calculateAABB(std::vector<uint32_t>& triIndices, std::vector<Tri>& tris) {
 		min = glm::vec3(std::numeric_limits<float>::max());
 		max = glm::vec3(std::numeric_limits<float>::lowest());
 
@@ -153,12 +166,12 @@ struct BVH {
 
 		uint32_t clampedEnd = std::min<uint32_t>(endIndex, uint32_t(tris.size() - 1));
 		for (uint32_t i = indexData; i <= clampedEnd; ++i) {
-			min = glm::min(min, tris[i].min);
-			max = glm::max(max, tris[i].max);
+			min = glm::min(min, tris[triIndices[i]].min);
+			max = glm::max(max, tris[triIndices[i]].max);
 		}
 	}
 
-	void avgSplit(std::vector<Tri>& tris) {
+	void avgSplit(std::vector<uint32_t>& triIndices, std::vector<Tri>& tris) {
 		splitPoint = glm::vec3(0.0f);
 
 		if (indexData > endIndex || indexData >= tris.size()) return;
@@ -168,13 +181,13 @@ struct BVH {
 		if (count == 0) return;
 
 		for (uint32_t i = indexData; i <= clampedEnd; ++i) {
-			splitPoint += tris[i].center;
+			splitPoint += tris[triIndices[i]].center;
 		}
 
 		splitPoint /= float(count);
 	}
 
-	void createChildren(std::vector<Tri>& tris, std::vector<BVH>& globalBVH) {
+	void createChildren(std::vector<uint32_t>& triIndices, std::vector<Tri>& tris, std::vector<PTModel>& models, std::vector<BVH>& globalBVH) {
 
 		glm::vec3 extent = max - min;
 		int axis = 0;
@@ -183,20 +196,15 @@ struct BVH {
 
 		uint32_t aIdx = indexData;
 
-		for (uint32_t i = indexData; i <= endIndex && i < tris.size(); ++i) {
-			bool isChildA = tris[i].center[axis] < splitPoint[axis];
-
+		for (uint32_t i = indexData; i <= endIndex && i < triIndices.size(); ++i) {
+			bool isChildA = tris[triIndices[i]].center[axis] < splitPoint[axis];
 			if (isChildA) {
+
 				if (i == aIdx) {
-					aIdx++;
-					continue;
+					aIdx++; continue;
 				}
 
-				std::swap(tris[i], tris[aIdx]);
-
-				tris[i].id = i;
-				tris[aIdx].id = aIdx;
-
+				std::swap(triIndices[i], triIndices[aIdx]);
 				aIdx++;
 			}
 		}
@@ -210,11 +218,11 @@ struct BVH {
 
 		uint32_t childAIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
-		globalBVH[childAIdx] = BVH(indexData, aIdx - 1, tris, globalBVH);
+		globalBVH[childAIdx] = BVH(indexData, aIdx - 1, triIndices, tris, models, globalBVH);
 
 		uint32_t childBIdx = uint32_t(globalBVH.size());
 		globalBVH.emplace_back();
-		globalBVH[childBIdx] = BVH(aIdx, endIndex, tris, globalBVH);
+		globalBVH[childBIdx] = BVH(aIdx, endIndex, triIndices, tris, models, globalBVH);
 
 		children[0] = childAIdx;
 		children[1] = childBIdx;

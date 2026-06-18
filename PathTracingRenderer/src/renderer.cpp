@@ -823,9 +823,9 @@ float distanceEstimator(glm::vec3 p0) {
 	return (glm::length(glm::vec2(p.x, p.z) / p.w) * 0.25f);
 }
 
-glm::vec3 rmGetNormal(glm::vec3& pos) {
+glm::vec3 rmGetNormal(glm::vec3& pos, float& rmNormalPrecision) {
 
-	float e = 0.001f;
+	float e = rmNormalPrecision;
 	glm::vec3 n = {
 		distanceEstimator(pos + glm::vec3(e, 0.0f, 0.0f)) - distanceEstimator(pos - glm::vec3(e, 0.0f, 0.0f)),
 		distanceEstimator(pos + glm::vec3(0.0f, e, 0.0f)) - distanceEstimator(pos - glm::vec3(0.0f, e, 0.0f)),
@@ -938,7 +938,7 @@ void PathTracer::rayMarchingLogic(PathRay& ray, PathRayState& rayState, Params& 
 				rayState.rmSteps = iter;
 				rayState.hitPos = ray.src + ray.dir * minSceneDist;
 
-				rayState.rmNormal = rmGetNormal(rayState.hitPos);
+				rayState.rmNormal = rmGetNormal(rayState.hitPos, params.rmNormalPrecision);
 
 				ray.src = rayState.hitPos + rayState.rmNormal * 0.001f;
 

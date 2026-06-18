@@ -267,6 +267,8 @@ struct PathTracer {
 	GLint rmLodMinDistMultLoc;
 	GLint rmLodAmountLoc;
 
+	GLint rmNormalPrecisionLoc;
+
 	// Camera Params
 	GLint apertureLoc;
 	GLint camPosLoc;
@@ -453,6 +455,8 @@ struct PathTracer {
 		rmFarPlaneLoc = glGetUniformLocation(computeProgram, "rmFarPlane");
 		rmPBRLoc = glGetUniformLocation(computeProgram, "rmPBR");
 
+		rmNormalPrecisionLoc = glGetUniformLocation(computeProgram, "rmNormalPrecision");
+
 		rmLodMinDistMultLoc = glGetUniformLocation(computeProgram, "rmLodMinDistMult");
 		rmLodAmountLoc = glGetUniformLocation(computeProgram, "rmLodAmount");
 
@@ -575,6 +579,8 @@ struct PathTracer {
 
 		glUniform1f(rmLodMinDistMultLoc, params.rmLodMinDistMult);
 		glUniform1f(rmLodAmountLoc, params.rmLodAmount);
+
+		glUniform1f(rmNormalPrecisionLoc, params.rmNormalPrecision);
 
 		updateRMMaterialGPU(params);
 		glBindBuffer(GL_UNIFORM_BUFFER, materialUBO);

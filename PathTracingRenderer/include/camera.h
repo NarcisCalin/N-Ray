@@ -76,9 +76,7 @@ struct PTCam {
 		}
 
 		if (IsMouseButtonDown(1)) {
-			camSpeed += GetMouseWheelMove();
-
-			camSpeed = std::max(camSpeed, 1.0f);
+			camSpeed = std::max(camSpeed + GetMouseWheelMove(), 0.1f);
 		}
 
 		glm::vec2 mDelta = { GetMouseDelta().x, GetMouseDelta().y };

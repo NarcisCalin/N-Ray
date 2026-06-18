@@ -57,4 +57,6 @@ void AreaLight::addTrisToVector(Data& data) {
 
     data.models.back().tris.push_back(triA);
     data.models.back().tris.push_back(triB);
+
+    data.models.back().calculateOriginCenter(data);
 }

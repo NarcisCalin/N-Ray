@@ -91,12 +91,13 @@ struct Params {
 
 	float renderTime = 0.0f;
 
-	bool rayMarcher = false;
-	bool pathTracer = true;
+	bool rayMarcher = true;
+	bool pathTracer = false;
 
 	int rmMaxSteps = 350;
 	float rmNearPlane = 0.001f;
 	float rmFarPlane = 1000.0f;
+	float rmNormalPrecision = 0.001f;
 
 	PTMaterial rmMat{ {0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
 		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
@@ -109,7 +110,7 @@ struct Params {
 
 	bool rmPBR = false;
 
-	bool enableGPU = false;
+	bool enableGPU = true;
 
 	bool exportRender = false;
 

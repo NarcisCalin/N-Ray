@@ -26,7 +26,7 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 		if (sliderHelper("Rays Per Pixel", "Amount of rays each pixel traces per sample", sliderSize, params.raysPerPixel, 1, 8)) {
 			params.shouldSample = false;
 		}
-		if (sliderHelper("Resolution", "Sets image resolution size", sliderSize, params.res, 16, 1024)) {
+		if (sliderHelper("Resolution", "Sets image resolution size", sliderSize, params.res, 16, 2048)) {
 			params.shouldSample = false;
 		}
 	}
@@ -71,6 +71,9 @@ void UI::logic(Params& params, Data& data, PTCam& myCam, PathTracer& pt) {
 			params.shouldSample = false;
 		}
 		if (sliderHelper("RM Lod Min Dist", "Minimum distance used for LOD at a distance", sliderSize, params.rmLodMinDistMult, 1.0f, 1.0f, LogSlider, params.rayMarcher)) {
+			params.shouldSample = false;
+		}
+		if (sliderHelper("RM Normal Precision", "Lower values mean more precise normals", sliderSize, params.rmNormalPrecision, 0.0001f, 0.01f, LogSlider, params.rayMarcher)) {
 			params.shouldSample = false;
 		}
 		if (buttonHelper("Ray Marcher PBR", "Enables PBR rendering for ray marching", buttonSize, params.rmPBR, true, params.rayMarcher)) {
@@ -707,7 +710,7 @@ bool UI::sliderHelper(std::string label, std::string tooltip, glm::vec2 size, fl
 
 	ImGui::Text("%s", label.c_str());
 
-	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.4f", ImGuiSliderFlags_Logarithmic)) {
+	if (ImGui::SliderFloat(("##" + label).c_str(), &parameter, minVal, maxVal, "%.6f", ImGuiSliderFlags_Logarithmic)) {
 		isSliderUsed = true;
 	}
 

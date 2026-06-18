@@ -73,6 +73,7 @@ struct PathRayState {
 	float len;
 	uint triIdx;
 	float rmMinLen;
+	float rmTotalLen;
 	int rmSteps;
 
 	bool hit;
@@ -129,6 +130,7 @@ uniform int raysPerPixel;
 uniform int rmMaxSteps;
 uniform float rmNearPlane;
 uniform float rmFarPlane;
+uniform float rmNormalPrecision;
 
 // Camera Params
 uniform float aperture;
@@ -201,6 +203,7 @@ void rayGeneration() {
 	rayState.isVolume = false;
 
 	rayState.rmMinLen = FLT_MAX;
+	rayState.rmTotalLen = 0.0;
 	rayState.rmSteps = 0;
 	rayState.rmNormal = vec3(0.0);
 }
@@ -388,24 +391,23 @@ vec3 environmentLogic() {
 }
 
 float distanceEstimator(vec3 p0) {
-	vec4 p = vec4(p0, 1.);
-	for(int i = 0; i < 8; i++) {
-		p.xyz = mod(p.xyz - 1., 2.) - 1.;
-		p *= 1.4 / dot(p.xyz, p.xyz);
-	}
-	return (length(p.xz / p.w) * 0.25);
+	 vec4 p = vec4(p0, 1.);
+    for(int i = 0; i < 8; i++){
+      p.xyz = mod(p.xyz-1.,2.)-1.;
+      p*=1.4/dot(p.xyz,p.xyz);
+    }
+    return (length(p.xz/p.w)*0.25);
 }
 
 vec3 rmGetNormal(vec3 pos) {
 
-	float e = 0.001;
+	float e = rmNormalPrecision;
 	vec3 n = vec3(
 		distanceEstimator(pos + vec3(e, 0.0, 0.0)) - distanceEstimator(pos - vec3(e, 0.0, 0.0)),
 		distanceEstimator(pos + vec3(0.0, e, 0.0)) - distanceEstimator(pos - vec3(0.0, e, 0.0)),
 		distanceEstimator(pos + vec3(0.0, 0.0, e)) - distanceEstimator(pos - vec3(0.0, 0.0, e)) );
 
 	return normalize(n);
-
 }
 
 vec3 sampleGGX(const vec3 normal, float roughness, float r1, float r2) {
@@ -577,7 +579,7 @@ void rayMarchingLogic() {
                 isInside = false;
             }
 
-            minSceneDist = abs(minSceneDist);
+            minSceneDist = minSceneDist;
 
             if (rmPBR) {
                 float closestT = minSceneDist;
@@ -704,6 +706,7 @@ void rayMarchingLogic() {
 			ray.invDir = 1.0 / ray.dir;
 
 			rayState.rmSteps++;
+			rayState.rmTotalLen += minSceneDist;
 
 			if (minSceneDist > rmFarPlane) {
 				rayState.rmMinLen = minRayLength;

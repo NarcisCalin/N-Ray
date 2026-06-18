@@ -91,10 +91,15 @@ glm::mat4 rotation = glm::rotate(
 
 void mousePosDisplay() {
 
-	Vector2 mousePos = GetMousePosition();
+	glm::vec2 mousePos = { GetMousePosition().x, GetMousePosition().y };
 
-	DrawText(TextFormat("X: %d", int(mousePos.x)), int(mousePos.x) - 50, int(mousePos.y) - 40, 20, DARKGRAY);
-	DrawText(TextFormat("Y: %d", int(mousePos.y)), int(mousePos.x) - 50, int(mousePos.y) - 20, 20, DARKGRAY);
+	glm::vec2 mouseNormalized = { mousePos.x / float(params.screenSize.x), mousePos.y / float(params.screenSize.y) };
+
+	int x = int(mouseNormalized.x * screen.resX);
+	int y = int(mouseNormalized.y * screen.resY);
+
+	DrawText(TextFormat("X: %d", x), int(mousePos.x) - 50, int(mousePos.y) - 60, 20, DARKGRAY);
+	DrawText(TextFormat("Y: %d", y), int(mousePos.x) - 50, int(mousePos.y) - 40, 20, DARKGRAY);
 
 }
 
@@ -240,7 +245,7 @@ int GetNextNumber(const std::string& folder, const std::string& prefix) {
 
 	int highest = 0;
 
-	std::regex pattern(prefix + R"((\d+)\.png)");
+	std::regex pattern(prefix + R"((\d+)\.jpg)");
 
 	for (const auto& entry : std::filesystem::directory_iterator(folder))
 	{
@@ -353,7 +358,7 @@ int main() {
 	PTMaterial emissiveWhiteMat{ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f},{0.0f, 0.0f, 0.0f},
 		1.0f, 1.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-	/*ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
+	ObjImporter scene{ "models/scene.obj", data, diffuseWhiteMat, false };
 
 	ObjImporter glass{ "models/sceneGlass.obj", data, glassMat, true };
 
@@ -361,16 +366,15 @@ int main() {
 
 	ObjImporter red{ "models/sceneRed.obj", data, redGlossyMat, true };
 
-	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };*/
+	ObjImporter dragon{ "models/dragon.obj", data, purpleGlassMat, true };
 
 	/*ObjImporter moon{ "models/moon.obj", data,
 		{0.7f, 0.7f, 0.7f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 0.0f},
 		1.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false };*/
 
 	std::cout << "Creating Lights..." << '\n';
-	//createLights();
 
-	//ObjImporter smallAreaLight{ "models/smallAreaLight.obj", data, emissiveWhiteMat, false };
+	data.areaLights.emplace_back(AreaLight({ 0.0f, 0.0f, 3.0f }, { 1.0f, 1.0f, 1.0f }, 10.0f, 1.0f, data));
 
 	std::cout << "Initializing Window..." << '\n';
 	int prevRes = params.res;
@@ -683,7 +687,7 @@ int main() {
 
 				int nextNumber = GetNextNumber("outputRenders", "Output_");
 
-				std::string filename = std::format("outputRenders/Output_{:02}.png", nextNumber);
+				std::string filename = std::format("outputRenders/Output_{:02}.jpg", nextNumber);
 
 				ExportImage(finalRender, filename.c_str());
 
@@ -693,7 +697,7 @@ int main() {
 
 				int nextNumber = GetNextNumber("outputRenders", "OutputViewport_");
 
-				std::string filename = std::format("outputRenders/OutputViewport_{:02}.png", nextNumber);
+				std::string filename = std::format("outputRenders/OutputViewport_{:02}.jpg", nextNumber);
 
 				TakeScreenshot(filename.c_str());
 			}

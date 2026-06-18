@@ -25,6 +25,7 @@ For this project I have used:
 
 ### How to build
 Currently the best way to build N-Ray is by opening it through Visual Studio. You might need to get some dependencies, but most of them are inside the "external" folder
+If you only want to use the ray marcher, then remove the models folder
 
 ### Gallery
 

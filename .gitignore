@@ -83,6 +83,7 @@ StyleCopReport.xml
 
 !models/
 !models/*.obj
+outputRenders/
 *.iobj
 *.pch
 *.pdb
